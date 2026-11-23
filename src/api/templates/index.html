@@ -1,54 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flood-AI | Universal Early Warning & Siren Alarm Platform</title>
+  <title>Flood-AI: Real-Time Early Warning & Siren Alarm Command</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22><text y=%2226%22 font-size=%2228%22>🌊</text></svg>">
 
-  <!-- Leaflet CSS for Geospatial Map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <!-- Chart.js for 72h Hydrograph -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Inter & Plus Jakarta Sans Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root {
-      --bg-dark: #090d16;
-      --card-bg: #111827;
-      --card-border: #1f2937;
-      --primary: #38bdf8;
-      --danger-red: #ef4444;
-      --warning-orange: #f97316;
-      --safe-green: #22c55e;
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
+      --bg-base: #060913;
+      --bg-surface: rgba(15, 23, 42, 0.78);
+      --bg-surface-solid: #0f172a;
+      --border-subtle: rgba(148, 163, 184, 0.12);
+      --border-focus: rgba(56, 189, 248, 0.4);
+      --accent-cyan: #38bdf8;
+      --accent-blue: #2563eb;
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.35);
+      --warning: #f97316;
+      --safe: #10b981;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      display: flex;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
       min-height: 100vh;
       overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(37, 99, 235, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(239, 68, 68, 0.05) 0%, transparent 45%);
     }
 
-    /* Sidebar */
-    .sidebar {
-      width: 380px;
-      background-color: #0d1322;
-      border-right: 1px solid var(--card-border);
-      padding: 24px 20px;
-      overflow-y: auto;
-      flex-shrink: 0;
+    /* Ambient Alarm Flash Overlay */
+    body.alarm-mode {
+      animation: emergency-ambient 2.4s infinite ease-in-out;
+    }
+
+    @keyframes emergency-ambient {
+      0%, 100% {
+        box-shadow: inset 0 0 60px rgba(239, 68, 68, 0.08);
+      }
+      50% {
+        box-shadow: inset 0 0 140px rgba(239, 68, 68, 0.32);
+      }
+    }
+
+    /* ================= TOPBAR ================= */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
       display: flex;
-      flex-direction: column;
-      gap: 20px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 24px;
+      background: rgba(6, 9, 19, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .brand {
@@ -57,153 +97,208 @@
       gap: 12px;
     }
 
-    .brand-icon {
-      font-size: 32px;
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 16px rgba(14, 165, 233, 0.35);
     }
 
     .brand-title {
-      font-size: 20px;
+      font-size: 17px;
       font-weight: 800;
-      color: #ffffff;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.3px;
+      background: linear-gradient(90deg, #f8fafc, #38bdf8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .brand-subtitle {
       font-size: 11px;
-      color: var(--primary);
-      text-transform: uppercase;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    .section-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
       color: var(--text-muted);
-      font-weight: 700;
-      margin-bottom: 8px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
     }
 
-    .search-box {
+    /* Search & Selector Hub */
+    .command-search {
       display: flex;
-      gap: 8px;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      max-width: 580px;
+    }
+
+    .input-wrap {
+      position: relative;
+      flex: 1;
     }
 
     .input-field {
       width: 100%;
-      background-color: #1e293b;
-      border: 1px solid #334155;
-      color: white;
-      padding: 10px 14px;
-      border-radius: 6px;
-      font-size: 14px;
+      height: 38px;
+      padding: 0 14px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 13px;
       outline: none;
-      transition: border 0.2s;
+      transition: all 0.2s ease;
     }
 
     .input-field:focus {
-      border-color: var(--primary);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+    }
+
+    .select-field {
+      height: 38px;
+      padding: 0 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .select-field:focus {
+      border-color: var(--accent-cyan);
     }
 
     .btn {
-      background-color: var(--primary);
-      color: #0f172a;
-      border: none;
-      font-weight: 700;
-      padding: 10px 16px;
-      border-radius: 6px;
-      cursor: pointer;
+      height: 38px;
+      padding: 0 16px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
       font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      transition: all 0.2s;
+      gap: 8px;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      white-space: nowrap;
     }
 
-    .btn:hover {
-      background-color: #7dd3fc;
+    .btn-primary {
+      background: #0284c7;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #0369a1;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
     }
 
     .btn-danger {
-      background-color: var(--danger-red);
-      color: white;
+      background: rgba(239, 68, 68, 0.18);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.4);
     }
 
     .btn-danger:hover {
-      background-color: #dc2626;
+      background: #ef4444;
+      color: #fff;
     }
 
-    .slider-group {
+    .btn-ghost {
+      background: rgba(30, 41, 59, 0.6);
+      color: var(--text-secondary);
+      border-color: var(--border-subtle);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: var(--text-primary);
+    }
+
+    .topbar-actions {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 12px;
+      align-items: center;
+      gap: 12px;
     }
 
-    .slider-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
+    /* Live Feed vs Simulator Switch */
+    .mode-switch {
+      display: inline-flex;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      gap: 3px;
     }
 
-    .slider-header span {
+    .mode-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background: transparent;
       color: var(--text-muted);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .slider-header b {
-      color: var(--primary);
+    .mode-btn.active {
+      background: #0284c7;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
     }
 
-    input[type=range] {
-      width: 100%;
-      height: 6px;
-      background: #1e293b;
-      border-radius: 3px;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-      accent-color: var(--primary);
-      cursor: pointer;
-    }
-
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 14px;
-      height: 14px;
+    .live-dot {
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: var(--primary);
-      cursor: pointer;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+      animation: pulse-dot 1.4s infinite alternate;
     }
 
-    /* Main Content */
-    .main-content {
-      flex: 1;
-      padding: 24px 28px;
-      overflow-y: auto;
+    @keyframes pulse-dot {
+      from { opacity: 0.4; transform: scale(0.85); }
+      to { opacity: 1; transform: scale(1.15); }
+    }
+
+    /* ================= MAIN WORKSPACE ================= */
+    .workspace {
+      max-width: 1560px;
+      margin: 0 auto;
+      padding: 20px 24px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 18px;
     }
 
     /* Emergency Siren Banner */
-    @keyframes emergency-pulse {
-      0% { background-color: #7f1d1d; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
-      50% { background-color: #b91c1c; box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); }
-      100% { background-color: #7f1d1d; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
-    }
-
     .alarm-banner {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
       padding: 14px 20px;
-      border-radius: 10px;
-      border: 2px solid #ef4444;
-      animation: emergency-pulse 1.4s infinite ease-in-out;
-      color: white;
+      border-radius: var(--radius-md);
+      background: linear-gradient(90deg, rgba(127, 29, 29, 0.94), rgba(185, 28, 28, 0.88));
+      border: 1px solid #f87171;
+      animation: emergency-border 1.4s infinite ease-in-out;
+      flex-wrap: wrap;
     }
 
     .alarm-banner.hidden {
@@ -213,140 +308,267 @@
     .alarm-info {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
 
     .alarm-icon {
-      font-size: 32px;
-      animation: bounce 0.6s infinite alternate;
+      font-size: 28px;
+      animation: shake 0.6s infinite alternate;
     }
 
-    @keyframes bounce {
-      from { transform: translateY(0); }
-      to { transform: translateY(-4px); }
+    @keyframes shake {
+      from { transform: rotate(-8deg) scale(1); }
+      to { transform: rotate(8deg) scale(1.08); }
     }
 
-    /* Identified City Feature Card */
-    .city-card {
-      background: linear-gradient(135deg, #111827, #1e293b);
-      border: 1px solid #38bdf8;
-      border-radius: 12px;
+    @keyframes emergency-border {
+      0%, 100% { border-color: #f87171; box-shadow: 0 0 16px rgba(239, 68, 68, 0.3); }
+      50% { border-color: #ef4444; box-shadow: 0 0 32px rgba(239, 68, 68, 0.6); }
+    }
+
+    /* City Intelligence Strip */
+    .city-strip {
+      background: var(--bg-surface);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
       padding: 18px 22px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      gap: 14px;
     }
 
-    .city-title-row {
+    .city-strip-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
     }
 
-    .city-name {
-      font-size: 22px;
-      font-weight: 800;
-      color: #38bdf8;
+    .city-identity {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .city-headline {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .city-flag {
+      font-size: 24px;
+    }
+
+    .city-name-text {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.4px;
+    }
+
+    .city-country-text {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 600;
     }
 
     .badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       padding: 4px 10px;
-      border-radius: 6px;
+      border-radius: 999px;
       font-size: 11px;
       font-weight: 700;
+      letter-spacing: 0.4px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
-    .badge-critical { background: var(--danger-red); color: white; }
-    .badge-warning { background: var(--warning-orange); color: white; }
-    .badge-safe { background: var(--safe-green); color: white; }
+    .badge-critical {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+    }
 
-    .city-details-row {
+    .badge-warning {
+      background: rgba(249, 115, 22, 0.18);
+      color: #fdba74;
+      border: 1px solid rgba(249, 115, 22, 0.5);
+    }
+
+    .badge-safe {
+      background: rgba(16, 185, 129, 0.18);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.5);
+    }
+
+    .city-meta {
       display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
+      align-items: center;
+      gap: 18px;
       font-size: 13px;
-      color: #cbd5e1;
-    }
-
-    .city-tags {
-      display: flex;
-      gap: 8px;
+      color: var(--text-secondary);
       flex-wrap: wrap;
-      margin-top: 4px;
     }
 
-    .tag {
-      background: #334155;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      color: #94a3b8;
+    .city-meta span b {
+      color: var(--text-primary);
     }
 
-    /* Metric Cards Grid */
-    .metrics-grid {
+    .city-pills {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .meta-pill {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meta-pill b {
+      color: var(--text-primary);
+    }
+
+    /* Live Telemetry Sensor Bar */
+    .telemetry-bar {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(148, 163, 184, 0.08);
     }
 
-    .metric-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      padding: 16px;
-      border-radius: 10px;
+    .telemetry-item {
+      background: rgba(6, 9, 19, 0.5);
+      border: 1px solid rgba(148, 163, 184, 0.09);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
-    .metric-label {
-      font-size: 12px;
+    .telemetry-label {
+      font-size: 11px;
       color: var(--text-muted);
       font-weight: 600;
       text-transform: uppercase;
+      letter-spacing: 0.4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    .metric-value {
-      font-size: 24px;
-      font-weight: 800;
-      color: #ffffff;
+    .telemetry-val {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-cyan);
     }
 
-    .metric-sub {
-      font-size: 11px;
-      color: var(--primary);
+    .telemetry-source {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* Map and Grid Container */
-    .map-container {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 16px;
+    /* ================= BENTO GRID ================= */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .primary-col,
+    .rail-col {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 20px;
     }
 
-    .map-header {
+    .panel {
+      background: var(--bg-surface);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-header {
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .map-legend {
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
       display: flex;
-      gap: 16px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-subtitle {
       font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Geospatial Map */
+    .map-wrapper {
+      position: relative;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+    }
+
+    #floodMap {
+      width: 100%;
+      height: 500px;
+      background-color: #0b1120;
+    }
+
+    .leaflet-tile-pane .dark-tiles {
+      filter: brightness(0.65) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.75);
+    }
+
+    .map-legend-overlay {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      z-index: 500;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: rgba(6, 9, 19, 0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-subtle);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
     }
 
     .legend-item {
@@ -356,42 +578,187 @@
     }
 
     .legend-dot {
-      width: 10px;
-      height: 10px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
     }
 
-    #floodMap {
-      width: 100%;
-      height: 480px;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      background-color: #0b1120;
+    /* Dark Leaflet Popup Override */
+    .leaflet-popup-content-wrapper,
+    .leaflet-popup-tip {
+      background: #0f172a !important;
+      color: #f8fafc !important;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55) !important;
     }
 
-    /* Tabs Layout */
-    .tabs-header {
+    .leaflet-popup-close-button {
+      color: #94a3b8 !important;
+    }
+
+    /* Right Rail: KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .kpi-card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
       display: flex;
-      gap: 8px;
-      border-bottom: 1px solid var(--card-border);
-      padding-bottom: 8px;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      background: var(--kpi-accent, var(--accent-cyan));
+    }
+
+    .kpi-card.full-span {
+      grid-column: span 2;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--accent-cyan);
+      font-weight: 500;
+    }
+
+    /* Sliders */
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .slider-header b {
+      font-family: var(--font-mono);
+      color: var(--accent-cyan);
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 999px;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+      transition: transform 0.15s;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+
+    /* Siren Control Box */
+    .siren-box {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 10px 12px;
+      background: rgba(6, 9, 19, 0.45);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(148, 163, 184, 0.08);
+    }
+
+    .toggle-row input {
+      accent-color: var(--danger);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    /* ================= TABS & DATA DOCK ================= */
+    .tabs-bar {
+      display: inline-flex;
+      gap: 4px;
+      background: rgba(6, 9, 19, 0.65);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      width: fit-content;
+      flex-wrap: wrap;
     }
 
     .tab-btn {
+      font-family: var(--font-sans);
       background: transparent;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       border: none;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 8px 16px;
-      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 13px;
+      border-radius: 7px;
       cursor: pointer;
       transition: all 0.2s;
     }
 
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
     .tab-btn.active {
-      background: #1e293b;
-      color: var(--primary);
+      background: rgba(30, 41, 59, 0.95);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
     .tab-content {
@@ -400,62 +767,89 @@
 
     .tab-content.active {
       display: block;
+      animation: tabFade 0.25s ease-out;
+    }
+
+    @keyframes tabFade {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     /* Radar Table */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
-      margin-top: 8px;
     }
 
     th, td {
-      padding: 10px 12px;
+      padding: 11px 14px;
       text-align: left;
-      border-bottom: 1px solid #1f2937;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+      white-space: nowrap;
     }
 
     th {
-      background-color: #1a2234;
+      background: rgba(6, 9, 19, 0.7);
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
       font-size: 11px;
+      letter-spacing: 0.6px;
     }
 
-    tr:hover {
-      background-color: #172033;
+    td.mono {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    tbody tr {
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover {
+      background: rgba(56, 189, 248, 0.06);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
     }
 
     /* Advisories */
     .advisory-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      gap: 16px;
     }
 
     .advisory-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 18px;
+      background: rgba(6, 9, 19, 0.5);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
     .advisory-text {
-      background: #1e293b;
+      background: rgba(15, 23, 42, 0.85);
       padding: 14px;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       font-size: 13px;
-      line-height: 1.5;
-      border-left: 4px solid var(--primary);
+      line-height: 1.6;
+      color: #e2e8f0;
+      border-left: 3px solid var(--accent-cyan);
     }
 
     .advisory-text.local {
-      border-left-color: var(--warning-orange);
+      border-left-color: var(--warning);
     }
 
     .list-item {
@@ -464,272 +858,627 @@
       gap: 8px;
       font-size: 13px;
       color: #cbd5e1;
+      padding: 7px 10px;
+      background: rgba(30, 41, 59, 0.45);
+      border-radius: 6px;
       margin-bottom: 6px;
+    }
+
+    /* Crisis Social Feed */
+    .crisis-feed-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .crisis-item {
+      background: rgba(6, 9, 19, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .crisis-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .crisis-author {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .crisis-text {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+
+    .crisis-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(148, 163, 184, 0.08);
+      padding-top: 8px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* ================= DATASET REGISTRY MODAL ================= */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #0f172a;
+      border: 1px solid var(--border-focus);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 1180px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+      overflow: hidden;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(6, 9, 19, 0.5);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      color: #fff;
+    }
+
+    .modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 999px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #0284c7;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 14px 0 24px;
+    }
+
+    @media (max-width: 1080px) {
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+      .advisory-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
-<body>
 
-  <!-- Left Sidebar Controls -->
-  <aside class="sidebar">
+<body class="{% if data.should_alarm %}alarm-mode{% endif %}">
+
+  <!-- Top Command Bar -->
+  <header class="topbar">
     <div class="brand">
-      <span class="brand-icon">🌊</span>
+      <div class="brand-logo">🌊</div>
       <div>
         <div class="brand-title">Flood-AI</div>
-        <div class="brand-subtitle">Early Warning & Siren Platform</div>
+        <div class="brand-subtitle">Real-Time Early Warning &amp; Siren Command</div>
       </div>
     </div>
 
-    <!-- City Intelligence Search -->
-    <div>
-      <div class="section-title">🏙️ Universal City Intelligence</div>
-      <div class="search-box">
-        <input type="text" id="cityInput" class="input-field" placeholder="Mention ANY city (e.g. Mumbai, Miami, Paris)..." value="{{ data.city }}">
-        <button id="searchBtn" class="btn" onclick="lookupCity()">Search</button>
-      </div>
-
-      <div style="margin-top: 10px;">
-        <select id="presetSelect" class="input-field" onchange="selectPreset(this.value)">
-          <option value="">-- Quick Preset Cities --</option>
-          {% for p in preset_cities %}
-          <option value="{{ p }}" {% if data.city in p %}selected{% endif %}>{{ p }}</option>
-          {% endfor %}
-        </select>
-      </div>
+    <!-- Live vs Simulator Mode Switch -->
+    <div class="mode-switch">
+      <button id="modeLiveBtn" class="mode-btn {% if data.is_live_mode %}active{% endif %}" onclick="setMode('live')">
+        <span class="live-dot"></span> 🔴 Live Sensors
+      </button>
+      <button id="modeSimBtn" class="mode-btn {% if not data.is_live_mode %}active{% endif %}" onclick="setMode('simulation')">
+        🧪 Simulator
+      </button>
     </div>
 
-    <!-- Hydro-Telemetry Overrides -->
-    <div>
-      <div class="section-title">🎛️ Live Hydro-Telemetry Controls</div>
-      
-      <div class="slider-group">
-        <div class="slider-header">
-          <span>Current River Stage:</span>
-          <b id="valStage">{{ data.sim_stage }} m</b>
-        </div>
-        <input type="range" id="sliderStage" min="1.0" max="8.0" step="0.1" value="{{ data.sim_stage }}" oninput="updateSimulation()">
+    <!-- Search & Selector Hub -->
+    <div class="command-search">
+      <div class="input-wrap">
+        <input type="text" id="cityInput" class="input-field"
+          placeholder="Search any city (e.g., Mumbai, Houston, Paris)..." value="{{ data.city }}">
       </div>
-
-      <div class="slider-group">
-        <div class="slider-header">
-          <span>Rate of Rise:</span>
-          <b id="valRate">{{ data.sim_rate }} m/h</b>
-        </div>
-        <input type="range" id="sliderRate" min="-0.2" max="0.8" step="0.05" value="{{ data.sim_rate }}" oninput="updateSimulation()">
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-header">
-          <span>Probability Sensitivity:</span>
-          <b id="valBoost">{{ data.sim_prob_boost }}x</b>
-        </div>
-        <input type="range" id="sliderBoost" min="0.5" max="1.5" step="0.05" value="{{ data.sim_prob_boost }}" oninput="updateSimulation()">
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-header">
-          <span>Estimated Inundation:</span>
-          <b id="valInundation">{{ data.sim_inundation }} ha</b>
-        </div>
-        <input type="range" id="sliderInundation" min="50" max="2500" step="50" value="{{ data.sim_inundation }}" oninput="updateSimulation()">
-      </div>
+      <button id="searchBtn" class="btn btn-primary" onclick="lookupCity()">🔍 Analyze</button>
+      <select id="presetSelect" class="select-field" onchange="selectPreset(this.value)">
+        <option value="">Quick Presets...</option>
+        {% for p in preset_cities %}
+        <option value="{{ p }}" {% if data.city in p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
     </div>
 
-    <!-- Audio Siren Alarm Controls -->
-    <div>
-      <div class="section-title">🔊 Emergency Audio Siren Alarm</div>
-      <div style="display: flex; gap: 8px; flex-direction: column;">
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
-          <input type="checkbox" id="alarmEnabled" checked onchange="toggleAlarmEnabled()">
-          <span>Enable Automatic Warning Siren</span>
-        </label>
-        <button id="testSirenBtn" class="btn btn-danger" onclick="toggleWebAudioSiren()">🔔 Test Siren Sound</button>
-      </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="openDatasetsModal()">📚 Datasets (20)</button>
+      <button id="testSirenBtn" class="btn btn-danger" onclick="toggleWebAudioSiren()">🔔 Test Siren</button>
     </div>
+  </header>
 
-    <div style="font-size: 11px; color: #64748b; margin-top: auto; text-align: center;">
-      Flood-AI Humanitarian Open-Access Platform • Sentinel-1 SAR & Spatio-Temporal Hydro-Forecasting
-    </div>
-  </aside>
+  <!-- Main Workspace -->
+  <main class="workspace">
 
-  <!-- Main Content Area -->
-  <main class="main-content">
-
-    <!-- Emergency Siren Alert Banner -->
+    <!-- Emergency Siren Banner -->
     <div id="alarmBanner" class="alarm-banner {% if not data.should_alarm %}hidden{% endif %}">
       <div class="alarm-info">
         <span class="alarm-icon">🚨</span>
         <div>
-          <b style="font-size: 16px; letter-spacing: 0.5px;">CRITICAL FLOOD ALARM ACTIVE: <span id="alarmCity">{{ data.city | upper }}</span></b>
-          <div style="font-size: 13px; opacity: 0.95;">High flood probability (<span id="alarmProb">{{ data.max_risk_percent }}%</span>) detected. Water stage exceeding danger marks.</div>
+          <div style="font-size: 15px; font-weight: 800; letter-spacing: 0.4px;">
+            CRITICAL FLOOD ALARM ACTIVE — <span id="alarmCity">{{ data.city | upper }}</span>
+          </div>
+          <div style="font-size: 13px; opacity: 0.92;">
+            Peak flood probability at <b id="alarmProb">{{ data.max_risk_percent }}%</b>. River stage has exceeded
+            hydraulic danger marks.
+          </div>
         </div>
       </div>
-      <div>
-        <button id="sirenActionBtn" class="btn" style="background: white; color: #b91c1c;" onclick="toggleWebAudioSiren()">🔊 Sound Siren Now</button>
-      </div>
+      <button id="sirenActionBtn" class="btn btn-ghost" onclick="toggleWebAudioSiren()">🔊 Sound Siren Now</button>
     </div>
 
-    <!-- Automatically Identified City Feature Card -->
-    <div class="city-card">
-      <div class="city-title-row">
-        <div class="city-name">
-          <span id="cityFlag">{{ data.flag }}</span>
-          <span>Automatically Identified Features: <b id="cityName">{{ data.city }}</b>, <span id="cityCountry">{{ data.country }}</span></span>
+    <!-- City Intelligence & Multi-Sensor Strip -->
+    <section class="city-strip">
+      <div class="city-strip-top">
+        <div class="city-identity">
+          <div class="city-headline">
+            <span id="cityFlag" class="city-flag">{{ data.flag }}</span>
+            <h1 class="city-name-text"><span id="cityName">{{ data.city }}</span></h1>
+            <span id="cityCountry" class="city-country-text">{{ data.country }}</span>
+            <span id="severityBadge"
+              class="badge {% if data.severity_level == 'EMERGENCY' %}badge-critical{% elif data.severity_level == 'WARNING' %}badge-warning{% else %}badge-safe{% endif %}">
+              {{ data.severity_level }}
+            </span>
+          </div>
+          <div class="city-meta">
+            <span>🌊 Basin: <b id="cityBasin">{{ data.basin }}</b></span>
+            <span>⚠️ Regime: <b id="cityRegime">{{ data.flood_type }}</b></span>
+            <span>📍 Coords: <b id="cityCoords" style="font-family: var(--font-mono);">{{ data.center_lat }}°N, {{ data.center_lon }}°E</b></span>
+          </div>
         </div>
-        <span id="severityBadge" class="badge {% if data.severity_level == 'EMERGENCY' %}badge-critical{% elif data.severity_level == 'WARNING' %}badge-warning{% else %}badge-safe{% endif %}">
-          {{ data.severity_level }}
-        </span>
-      </div>
 
-      <div class="city-details-row">
-        <div>🌊 <b>Watercourse / Basin:</b> <span id="cityBasin">{{ data.basin }}</span></div>
-        <div>⚠️ <b>Flood Regime:</b> <span id="cityRegime">{{ data.flood_type }}</span></div>
-        <div>📍 <b>Coordinates:</b> <span id="cityCoords">{{ data.center_lat }}°N, {{ data.center_lon }}°E</span></div>
-      </div>
-
-      <div class="city-tags">
-        <span class="tag">🚨 Danger Mark: <b id="tagDanger">{{ data.danger_stage_m }}m</b></span>
-        <span class="tag">🔴 Red Spots: <b id="tagHotspots">{{ data.hotspots | length }} Active Zones</b></span>
-        <span class="tag">🟢 Safe Shelters: <b id="tagShelters">{{ data.shelters | length }} Centers</b></span>
-        <span class="tag">🗣️ Language: <b id="tagLang">{{ data.language }}</b></span>
-      </div>
-    </div>
-
-    <!-- Top Key Metrics Cards -->
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-label">Current River Stage</div>
-        <div id="mStage" class="metric-value">{{ data.sim_stage }} m</div>
-        <div id="mRate" class="metric-sub">+{{ data.sim_rate }} m/h rise</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Danger Threshold</div>
-        <div id="mDanger" class="metric-value">{{ data.danger_stage_m }} m</div>
-        <div class="metric-sub">Hydraulic baseline</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Peak Flood Risk</div>
-        <div id="mRisk" class="metric-value">{{ data.max_risk_percent }}%</div>
-        <div id="mRiskSub" class="metric-sub">🔴 Critical Red Spots</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Estimated Inundation</div>
-        <div id="mInundation" class="metric-value">{{ data.sim_inundation }} ha</div>
-        <div class="metric-sub">+45 ha in 6h</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Civil Defense Alert</div>
-        <div id="mSeverity" class="metric-value" style="font-size: 20px; color: #f87171;">{{ data.severity_level }}</div>
-        <div class="metric-sub">Frontline dispatch</div>
-      </div>
-    </div>
-
-    <!-- Geospatial Inundation Map Container -->
-    <div class="map-container">
-      <div class="map-header">
-        <b style="font-size: 16px;">🗺️ Geospatial Inundation Probability & Red Spot Hotspots</b>
-        <div class="map-legend">
-          <div class="legend-item"><span class="legend-dot" style="background: var(--danger-red);"></span> 🔴 Red Spots (Prob ≥ 75%)</div>
-          <div class="legend-item"><span class="legend-dot" style="background: var(--warning-orange);"></span> 🟠 Orange Spots (50-74%)</div>
-          <div class="legend-item"><span class="legend-dot" style="background: var(--safe-green);"></span> 🟢 Safe Shelters</div>
-        </div>
-      </div>
-      <div id="floodMap"></div>
-    </div>
-
-    <!-- Tabs: Radar Table, 72h Hydrograph, Multilingual Advisories -->
-    <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px;">
-      <div class="tabs-header">
-        <button class="tab-btn active" onclick="switchTab('tabRadar')">📡 Live Risk Radar Table</button>
-        <button class="tab-btn" onclick="switchTab('tabHydro')">📈 72h Hydrograph Nowcast</button>
-        <button class="tab-btn" onclick="switchTab('tabAdvisories')">📢 Multilingual Directives</button>
-      </div>
-
-      <!-- Tab 1: Risk Radar Table -->
-      <div id="tabRadar" class="tab-content active">
-        <table id="hotspotsTable">
-          <thead>
-            <tr>
-              <th>Monitored Hotspot</th>
-              <th>River / Canal</th>
-              <th>Flood Risk</th>
-              <th>Status</th>
-              <th>Water Stage</th>
-              <th>Danger Mark</th>
-              <th>Population at Risk</th>
-            </tr>
-          </thead>
-          <tbody id="hotspotsTableBody">
-            {% for h in data.hotspots %}
-            <tr>
-              <td><b>{{ h.name }}</b></td>
-              <td>{{ h.river }}</td>
-              <td><b>{{ h.prob_percent }}</b></td>
-              <td>
-                <span class="badge {% if 'RED' in h.risk_category %}badge-critical{% elif 'ORANGE' in h.risk_category %}badge-warning{% else %}badge-safe{% endif %}">
-                  {{ h.risk_category }}
-                </span>
-              </td>
-              <td>{{ h.stage_m }} m</td>
-              <td>{{ h.danger_m }} m</td>
-              <td>{{ h.population }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Tab 2: Hydrograph Chart -->
-      <div id="tabHydro" class="tab-content">
-        <div style="height: 320px; position: relative;">
-          <canvas id="hydroChart"></canvas>
+        <div class="city-pills">
+          <span class="meta-pill">🚨 Danger <b id="tagDanger">{{ data.danger_stage_m }}m</b></span>
+          <span class="meta-pill">🔴 Hotspots <b id="tagHotspots">{{ data.hotspots | length }} Zones</b></span>
+          <span class="meta-pill">👥 Pop at Risk <b id="tagPop">{{ data.exposure_summary.total_exposed_population }}</b></span>
+          <span class="meta-pill">🏚️ Bldgs <b id="tagBldgs">{{ data.exposure_summary.total_buildings_at_risk }}</b></span>
+          <span class="meta-pill">🗣️ Lang <b id="tagLang">{{ data.language }}</b></span>
         </div>
       </div>
 
-      <!-- Tab 3: Multilingual Advisories -->
-      <div id="tabAdvisories" class="tab-content">
-        <div class="advisory-grid">
-          <div class="advisory-card">
-            <b>🌐 Official English Directive</b>
-            <div id="advEnglish" class="advisory-text">{{ data.english_advisory }}</div>
-            <b>🛣️ Designated Safe Evacuation Corridors:</b>
-            <div id="routesList">
-              {% for r in data.evacuation_routes %}
-              <div class="list-item">🚗 <b>{{ r }}</b></div>
+      <!-- Real-Time Sensor Telemetry Bar -->
+      <div class="telemetry-bar">
+        <div class="telemetry-item">
+          <div class="telemetry-label">🌧️ Rainfall Rate (Open-Meteo) <span>LIVE</span></div>
+          <div id="telRain" class="telemetry-val">{{ data.weather.current_rain_mm_h }} mm/h</div>
+          <div id="telAccum" class="telemetry-source">24h Accum: {{ data.weather.accum_24h_mm }} mm • {{ data.weather.condition }}</div>
+        </div>
+        <div class="telemetry-item">
+          <div class="telemetry-label">🌊 River Gauge (USGS / BWDB) <span>TELEMETRY</span></div>
+          <div id="telStage" class="telemetry-val">{{ data.sim_stage }} m (+{{ data.sim_rate }} m/h)</div>
+          <div id="telStation" class="telemetry-source">{{ data.hydrology.station_name }}</div>
+        </div>
+        <div class="telemetry-item">
+          <div class="telemetry-label">👥 Exposure (WorldPop 100m) <span>GRID</span></div>
+          <div id="telPopVal" class="telemetry-val">{{ data.exposure_summary.total_exposed_population }}</div>
+          <div class="telemetry-source">High-Resolution Demographic Inundation Overlay</div>
+        </div>
+        <div class="telemetry-item">
+          <div class="telemetry-label">🏚️ Structural Damage (xBD) <span>DARPA</span></div>
+          <div id="telDamageVal" class="telemetry-val">{{ data.exposure_summary.total_buildings_at_risk }} bldgs (~${{ data.exposure_summary.total_estimated_loss_usd_m }}M)</div>
+          <div class="telemetry-source">4-Level Post-Disaster Damage Classification</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bento Grid -->
+    <div class="bento-grid">
+
+      <!-- Left / Primary Column -->
+      <div class="primary-col">
+
+        <!-- Geospatial Inundation Map -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🗺️ Geospatial Inundation &amp; Doppler Radar Overlay</div>
+            <span class="panel-subtitle">Interactive SAR (Sen1Floods11) + NEXRAD Doppler Radar + 100% English Labels</span>
+          </div>
+
+          <div class="map-wrapper">
+            <div id="floodMap"></div>
+            <div class="map-legend-overlay">
+              <div class="legend-item"><span class="legend-dot" style="background: var(--danger);"></span> Red Spots (&ge;75%)</div>
+              <div class="legend-item"><span class="legend-dot" style="background: var(--warning);"></span> Orange (50–74%)</div>
+              <div class="legend-item"><span class="legend-dot" style="background: var(--safe);"></span> Safe Shelters</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Analytics & Multi-Sensor Dock -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="tabs-bar">
+              <button class="tab-btn active" onclick="switchTab('tabRadar', this)">📡 Risk Radar &amp; xBD</button>
+              <button class="tab-btn" onclick="switchTab('tabHydro', this)">📈 72h Hydrograph (TFT)</button>
+              <button class="tab-btn" onclick="switchTab('tabCrisis', this)">📱 Citizen Crisis Feed (CrisisMMD)</button>
+              <button class="tab-btn" onclick="switchTab('tabAdvisories', this)">📢 Multilingual Directives</button>
+              <button class="tab-btn" onclick="switchTab('tabDatasets', this)">📚 20 Datasets Registry</button>
+            </div>
+          </div>
+
+          <!-- Tab 1: Risk Radar Table & xBD Damage -->
+          <div id="tabRadar" class="tab-content active">
+            <div class="table-wrap">
+              <table id="hotspotsTable">
+                <thead>
+                  <tr>
+                    <th>Monitored Hotspot</th>
+                    <th>River / Basin</th>
+                    <th>Flood Probability</th>
+                    <th>Hazard Status</th>
+                    <th>Water Stage</th>
+                    <th>WorldPop Citizens</th>
+                    <th>xBD Damaged Bldgs</th>
+                    <th>Est. Loss (USD)</th>
+                  </tr>
+                </thead>
+                <tbody id="hotspotsTableBody">
+                  {% for h in data.hotspots %}
+                  <tr>
+                    <td><b>{{ h.name }}</b></td>
+                    <td>{{ h.river }}</td>
+                    <td class="mono"><b>{{ h.prob_percent }}</b></td>
+                    <td>
+                      <span class="badge {% if 'RED' in h.risk_category %}badge-critical{% elif 'ORANGE' in h.risk_category %}badge-warning{% else %}badge-safe{% endif %}">
+                        {{ h.risk_category }}
+                      </span>
+                    </td>
+                    <td class="mono">{{ h.stage_m }} m</td>
+                    <td class="mono">{{ h.population }}</td>
+                    <td class="mono">{{ h.buildings_at_risk }}</td>
+                    <td class="mono">${{ h.estimated_loss_usd_m }}M</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab 2: 72h Hydrograph Nowcast -->
+          <div id="tabHydro" class="tab-content">
+            <div style="height: 330px; position: relative;">
+              <canvas id="hydroChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Tab 3: Citizen Crisis Feed (CrisisMMD & HumAID) -->
+          <div id="tabCrisis" class="tab-content">
+            <div id="crisisFeedContainer" class="crisis-feed-container">
+              {% for report in data.crisis_feed %}
+              <div class="crisis-item">
+                <div class="crisis-header">
+                  <span class="crisis-author">{{ report.author }}</span>
+                  <span class="badge badge-critical">{{ report.urgency_badge }}</span>
+                  <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">{{ report.timestamp }}</span>
+                </div>
+                <div class="crisis-text">{{ report.text }}</div>
+                <div class="crisis-footer">
+                  <span>📍 {{ report.location_name }} ({{ report.lat }}, {{ report.lon }})</span>
+                  <span>⚡ HumAID: <b>{{ report.category }}</b> • Urgency: <b>{{ report.urgency_score }}</b></span>
+                  <span style="color: #38bdf8;">✓ Verified via CrisisMMD NLP</span>
+                </div>
+              </div>
               {% endfor %}
             </div>
           </div>
 
-          <div class="advisory-card">
-            <b>{{ data.flag }} Local Language Directive (<span id="advLang">{{ data.language }}</span>)</b>
-            <div id="advLocal" class="advisory-text local">{{ data.local_advisory }}</div>
-            <b>🏠 Verified Safe High-Ground Shelters:</b>
-            <div id="sheltersList">
-              {% for s in data.shelters %}
-              <div class="list-item">🏠 <b>{{ s.name }}</b> <i>(Cap: {{ s.capacity }})</i></div>
-              {% endfor %}
+          <!-- Tab 4: Multilingual Directives & Evacuation Routes -->
+          <div id="tabAdvisories" class="tab-content">
+            <div class="advisory-grid">
+              <div class="advisory-card">
+                <div class="panel-title">🌐 Official English Directive</div>
+                <div id="advEnglish" class="advisory-text">{{ data.english_advisory }}</div>
+                <div class="panel-subtitle" style="margin-top: 4px;">🛣️ Safe Evacuation Corridors (OpenStreetMap)</div>
+                <div id="routesList">
+                  {% for r in data.evacuation_routes %}
+                  <div class="list-item">🚗 <b>{{ r }}</b></div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="advisory-card">
+                <div class="panel-title">{{ data.flag }} Local Directive (<span id="advLang">{{ data.language }}</span>)</div>
+                <div id="advLocal" class="advisory-text local">{{ data.local_advisory }}</div>
+                <div class="panel-subtitle" style="margin-top: 4px;">🏠 Verified High-Ground Shelters</div>
+                <div id="sheltersList">
+                  {% for s in data.shelters %}
+                  <div class="list-item">🏠 <b>{{ s.name }}</b> <span style="color: var(--text-muted); margin-left: auto;">Cap: {{ s.capacity }}</span></div>
+                  {% endfor %}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+
+          <!-- Tab 5: 20 Official Datasets Registry -->
+          <div id="tabDatasets" class="tab-content">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Dataset Name</th>
+                    <th>Category</th>
+                    <th>Modality</th>
+                    <th>Coverage / Latency</th>
+                    <th>Flood-AI Pipeline Role</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ds in datasets %}
+                  <tr>
+                    <td class="mono">{{ ds.id }}</td>
+                    <td><b>{{ ds.dataset_name }}</b></td>
+                    <td>{{ ds.category }}</td>
+                    <td>{{ ds.modality }}</td>
+                    <td>{{ ds.temporal_resolution }}</td>
+                    <td>{{ ds.flood_ai_phase }}</td>
+                    <td><span class="badge {% if ds.is_real_time %}badge-safe{% else %}badge-warning{% endif %}">{{ ds.status_badge }}</span></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
       </div>
 
+      <!-- Right Rail: KPIs, Simulation Controls & Siren -->
+      <aside class="rail-col">
+
+        <!-- Live KPI Bento -->
+        <div class="kpi-grid">
+          <div class="kpi-card" style="--kpi-accent: #38bdf8;">
+            <span class="kpi-label">River Stage</span>
+            <span id="mStage" class="kpi-value">{{ data.sim_stage }} m</span>
+            <span id="mRate" class="kpi-sub">+{{ data.sim_rate }} m/h rise</span>
+          </div>
+
+          <div class="kpi-card" style="--kpi-accent: #f97316;">
+            <span class="kpi-label">Danger Mark</span>
+            <span id="mDanger" class="kpi-value">{{ data.danger_stage_m }} m</span>
+            <span class="kpi-sub" style="color: #fdba74;">Hydraulic threshold</span>
+          </div>
+
+          <div class="kpi-card" style="--kpi-accent: #ef4444;">
+            <span class="kpi-label">Peak Risk</span>
+            <span id="mRisk" class="kpi-value">{{ data.max_risk_percent }}%</span>
+            <span id="mRiskSub" class="kpi-sub" style="color: #fca5a5;">ViT-UNet Red Spots</span>
+          </div>
+
+          <div class="kpi-card" style="--kpi-accent: #a855f7;">
+            <span class="kpi-label">Inundation</span>
+            <span id="mInundation" class="kpi-value">{{ data.sim_inundation }} ha</span>
+            <span class="kpi-sub" style="color: #d8b4fe;">Sen1Floods11 SAR</span>
+          </div>
+
+          <div class="kpi-card full-span" style="--kpi-accent: #ef4444;">
+            <div>
+              <span class="kpi-label">Civil Defense Dispatch</span>
+              <div class="kpi-sub" style="color: var(--text-secondary);">Active alert posture</div>
+            </div>
+            <span id="mSeverity" class="kpi-value" style="font-size: 18px; color: #f87171;">{{ data.severity_level }}</span>
+          </div>
+        </div>
+
+        <!-- Live Hydro-Telemetry Controls -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🎛️ Telemetry &amp; What-If Overrides</div>
+            <span id="modeStatusLabel" class="panel-subtitle">{% if data.is_live_mode %}Live Streaming Feed{% else %}Manual Sim Active{% endif %}</span>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Current River Stage</span>
+              <b id="valStage">{{ data.sim_stage }} m</b>
+            </div>
+            <input type="range" id="sliderStage" min="1.0" max="8.0" step="0.1" value="{{ data.sim_stage }}"
+              oninput="handleSliderInput()">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Rate of Rise</span>
+              <b id="valRate">{{ data.sim_rate }} m/h</b>
+            </div>
+            <input type="range" id="sliderRate" min="-0.2" max="0.8" step="0.05" value="{{ data.sim_rate }}"
+              oninput="handleSliderInput()">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Probability Sensitivity</span>
+              <b id="valBoost">{{ data.sim_prob_boost }}x</b>
+            </div>
+            <input type="range" id="sliderBoost" min="0.5" max="1.5" step="0.05" value="{{ data.sim_prob_boost }}"
+              oninput="handleSliderInput()">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Estimated Inundation</span>
+              <b id="valInundation">{{ data.sim_inundation }} ha</b>
+            </div>
+            <input type="range" id="sliderInundation" min="50" max="2500" step="50" value="{{ data.sim_inundation }}"
+              oninput="handleSliderInput()">
+          </div>
+        </section>
+
+        <!-- Audio Siren Control -->
+        <section class="panel siren-box">
+          <div class="panel-header">
+            <div class="panel-title">🔊 Emergency Siren Module</div>
+            <span class="panel-subtitle">Autonomous EAS</span>
+          </div>
+
+          <label class="toggle-row">
+            <span>Auto-trigger siren on critical alarm</span>
+            <input type="checkbox" id="alarmEnabled" checked onchange="toggleAlarmEnabled()">
+          </label>
+        </section>
+
+      </aside>
     </div>
+
+    <footer class="footer-note">
+      Flood-AI Humanitarian Open-Access Platform • 20 Real-Time &amp; Foundational Datasets • Sentinel-1 SAR &amp; ViT-UNet
+    </footer>
 
   </main>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Dataset Registry Modal -->
+  <div id="datasetsModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">📚 Official Multi-Sensor Datasets Catalog (20 Verified Sources)</div>
+        <button class="modal-close" onclick="closeDatasetsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterModalDatasets('all', this)">All (20)</button>
+          <button class="filter-btn" onclick="filterModalDatasets('realtime', this)">Live Real-Time Feeds (7)</button>
+          <button class="filter-btn" onclick="filterModalDatasets('satellite', this)">Satellite &amp; Radar</button>
+          <button class="filter-btn" onclick="filterModalDatasets('hydrology', this)">Hydrology &amp; Gauges</button>
+          <button class="filter-btn" onclick="filterModalDatasets('social', this)">Social Media &amp; Triage</button>
+        </div>
+        <div class="table-wrap">
+          <table id="modalDatasetsTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Dataset</th>
+                <th>Category</th>
+                <th>Modality</th>
+                <th>Resolution / Update</th>
+                <th>Local Path</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ds in datasets %}
+              <tr data-cat="{{ ds.category | lower }}" data-realtime="{{ ds.is_real_time }}">
+                <td class="mono">{{ ds.id }}</td>
+                <td><b><a href="{{ ds.url }}" target="_blank" style="color: #38bdf8; text-decoration: none;">{{ ds.dataset_name }} ↗</a></b></td>
+                <td>{{ ds.category }}</td>
+                <td>{{ ds.modality }}</td>
+                <td>{{ ds.spatial_resolution }} • {{ ds.temporal_resolution }}</td>
+                <td class="mono" style="font-size: 11px; color: var(--text-muted);">{{ ds.flood_ai_folder_path }}</td>
+                <td><span class="badge {% if ds.is_real_time %}badge-safe{% else %}badge-warning{% endif %}">{{ ds.status_badge }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- Decoupled JSON State payload to eliminate VS Code syntax linter warnings -->
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Decoupled JSON State Payload -->
   <script id="initial-state-payload" type="application/json">{{ data | tojson | safe }}</script>
 
   <script>
-    // State Store (Safely parsed from JSON payload)
     const stateElem = document.getElementById("initial-state-payload");
     let currentData = stateElem ? JSON.parse(stateElem.textContent) : {};
     let map = null;
     let markersLayer = null;
+    let liveRadarLayer = null;
     let hydroChart = null;
+    let simDebounceTimer = null;
+    let currentMode = currentData.mode || "live";
 
     // Web Audio API Emergency Siren Synth
     let webAudioCtx = null;
@@ -744,81 +1493,121 @@
         zoomControl: true,
       });
 
-      // Free Base Layers - NO API KEY REQUIRED
-      const osmStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
+      // 100% English Global Map Tiles (NO API KEY REQUIRED, NO WATERMARK, 100% ENGLISH LABELS WORLDWIDE)
+      const esriEnglishStreet = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Sources: Esri, USGS, NOAA',
         maxZoom: 19
       });
 
-      const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      const darkEnglishMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Sources: Esri, USGS, NOAA',
+        className: 'dark-tiles',
+        maxZoom: 19
+      });
+
+      const esriSatBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri &mdash; Earthstar Geographics',
         maxZoom: 19
       });
+      const esriEnglishLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '',
+        maxZoom: 19
+      });
+      const esriSatelliteEnglish = L.layerGroup([esriSatBase, esriEnglishLabels]);
 
-      // Default OpenStreetMap (Free, clean, zero watermark)
-      osmStreet.addTo(map);
+      // Live Doppler Weather Radar (NEXRAD & Global Radar Mosaic via RainViewer API - Free, Open, Zero Key)
+      liveRadarLayer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/nowcast_8805f778a42e/256/{z}/{x}/{y}/2/1_1.png', {
+        opacity: 0.65,
+        attribution: '&copy; RainViewer &mdash; Real-Time NEXRAD & Doppler Radar',
+        maxZoom: 18
+      });
 
-      // Layer Control in Top Right to switch Street vs Satellite
+      // Default to 100% English Street Map
+      esriEnglishStreet.addTo(map);
+
       const baseMaps = {
-        "🗺️ Street Map (Free)": osmStreet,
-        "🛰️ Satellite View (Free)": esriSatellite
+        "🗺️ English Street Map": esriEnglishStreet,
+        "🌑 Dark Tactical (English)": darkEnglishMap,
+        "🛰️ Satellite View (English)": esriSatelliteEnglish
       };
-      L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
 
       markersLayer = L.layerGroup().addTo(map);
+
+      const overlayMaps = {
+        "📡 Live Doppler Weather Radar (NEXRAD)": liveRadarLayer,
+        "🚨 Inundation Hotspots & Shelters": markersLayer
+      };
+
+      L.control.layers(baseMaps, overlayMaps, { position: 'topright' }).addTo(map);
+
+      // Attempt to fetch latest RainViewer real-time radar timestamp
+      fetchRainViewerRadarTimestamp();
+
       renderMapMarkers();
+    }
+
+    async function fetchRainViewerRadarTimestamp() {
+      try {
+        const resp = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+        const data = await resp.json();
+        if (data && data.radar && data.radar.past && data.radar.past.length > 0) {
+          const latest = data.radar.past[data.radar.past.length - 1];
+          const newUrl = `https://tilecache.rainviewer.com${latest.path}/256/{z}/{x}/{y}/2/1_1.png`;
+          liveRadarLayer.setUrl(newUrl);
+        }
+      } catch (e) {
+        // Fallback radar tile URL is already set
+      }
     }
 
     function renderMapMarkers() {
       if (!markersLayer) return;
       markersLayer.clearLayers();
 
-      // Plot Red Spots & Orange Spots
       (currentData.hotspots || []).forEach(h => {
         const circle = L.circle([h.lat, h.lon], {
           color: h.color_hex,
           fillColor: h.fill_color,
-          fillOpacity: 0.65,
+          fillOpacity: 0.55,
           radius: h.radius_m || 1500,
           weight: 2
         });
 
         circle.bindPopup(`
-          <div style="font-family: sans-serif; font-size: 13px; line-height: 1.4;">
+          <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; line-height: 1.5;">
             <b style="color: ${h.color_hex}; font-size: 14px;">🚨 ${h.name}</b><br/>
             <b>River / Channel:</b> ${h.river}<br/>
-            <b>Flood Probability:</b> <span style="color: red; font-weight: bold;">${h.prob_percent}</span><br/>
+            <b>Flood Probability:</b> <span style="color: #f87171; font-weight: 700;">${h.prob_percent}</span><br/>
             <b>Water Stage:</b> ${h.stage_m}m (Danger: ${h.danger_m}m)<br/>
-            <b>Threat Category:</b> ${h.risk_category}<br/>
-            <b>Population at Risk:</b> ${h.population}
+            <b>WorldPop Exposed:</b> <b>${h.population}</b> citizens<br/>
+            <b>xBD Damaged Buildings:</b> <b>${h.buildings_at_risk}</b> bldgs<br/>
+            <b>Est. Economic Loss:</b> <b>$${h.estimated_loss_usd_m}M</b>
           </div>
         `);
         circle.addTo(markersLayer);
       });
 
-      // Plot Safe Shelters (Green Circles)
       (currentData.shelters || []).forEach(s => {
         const shelterMarker = L.circleMarker([s.lat, s.lon], {
           color: '#ffffff',
           fillColor: '#10b981',
-          fillOpacity: 0.9,
-          radius: 9,
+          fillOpacity: 0.95,
+          radius: 8,
           weight: 2
         });
 
         shelterMarker.bindPopup(`
-          <div style="font-family: sans-serif; font-size: 13px;">
-            <b style="color: #10b981; font-size: 14px;">🏠 Safe Shelter</b><br/>
+          <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; line-height: 1.5;">
+            <b style="color: #34d399; font-size: 14px;">🏠 Verified Safe Shelter</b><br/>
             <b>Name:</b> ${s.name}<br/>
-            <b>Verified Capacity:</b> ${s.capacity} persons<br/>
-            <span style="color: #10b981; font-weight: bold;">✓ High Ground • Operational</span>
+            <b>Capacity:</b> ${s.capacity} persons<br/>
+            <span style="color: #34d399; font-weight: 700;">✓ High Ground • Operational</span>
           </div>
         `);
         shelterMarker.addTo(markersLayer);
       });
 
-      // Center map
-      map.flyTo([currentData.center_lat, currentData.center_lon], currentData.zoom || 12, { duration: 1.2 });
+      map.flyTo([currentData.center_lat, currentData.center_lon], currentData.zoom || 12, { duration: 1.1 });
     }
 
     function initHydroChart() {
@@ -828,16 +1617,16 @@
       hydroChart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: hData.hours.map(h => `Hour ${h}`),
+          labels: hData.hours.map(h => `H+${h}`),
           datasets: [
             {
               label: 'Median Forecast (p50)',
               data: hData.p50,
               borderColor: '#38bdf8',
-              backgroundColor: 'rgba(56, 189, 248, 0.2)',
+              backgroundColor: 'rgba(56, 189, 248, 0.15)',
               fill: false,
-              tension: 0.3,
-              borderWidth: 3
+              tension: 0.35,
+              borderWidth: 2.5
             },
             {
               label: 'Pessimistic Surge (p90)',
@@ -845,17 +1634,17 @@
               borderColor: '#f97316',
               borderDash: [5, 5],
               fill: '+1',
-              backgroundColor: 'rgba(249, 115, 22, 0.1)',
-              tension: 0.3,
+              backgroundColor: 'rgba(249, 115, 22, 0.08)',
+              tension: 0.35,
               borderWidth: 2
             },
             {
               label: 'Optimistic Bound (p10)',
               data: hData.p10,
-              borderColor: '#22c55e',
+              borderColor: '#10b981',
               borderDash: [5, 5],
               fill: false,
-              tension: 0.3,
+              tension: 0.35,
               borderWidth: 2
             },
             {
@@ -864,26 +1653,45 @@
               borderColor: '#ef4444',
               borderWidth: 2,
               pointRadius: 0,
-              fill: false
+              borderDash: [4, 4]
+            },
+            {
+              label: 'Emergency Evacuation Level',
+              data: hData.emergency_line,
+              borderColor: '#b91c1c',
+              borderWidth: 2.5,
+              pointRadius: 0
             }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          scales: {
-            y: {
-              title: { display: true, text: 'River Stage (meters)', color: '#9ca3af' },
-              grid: { color: '#1f2937' },
-              ticks: { color: '#cbd5e1' }
+          plugins: {
+            legend: {
+              labels: {
+                color: '#94a3b8',
+                font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 }
+              }
             },
-            x: {
-              grid: { color: '#1f2937' },
-              ticks: { color: '#cbd5e1' }
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#fff',
+              bodyColor: '#38bdf8',
+              borderColor: 'rgba(56, 189, 248, 0.3)',
+              borderWidth: 1
             }
           },
-          plugins: {
-            legend: { labels: { color: '#f3f4f6' } }
+          scales: {
+            x: {
+              grid: { color: 'rgba(148, 163, 184, 0.08)' },
+              ticks: { color: '#64748b', font: { family: "'JetBrains Mono', monospace" } }
+            },
+            y: {
+              title: { display: true, text: 'River Stage (meters)', color: '#94a3b8' },
+              grid: { color: 'rgba(148, 163, 184, 0.08)' },
+              ticks: { color: '#64748b', font: { family: "'JetBrains Mono', monospace" } }
+            }
           }
         }
       });
@@ -892,60 +1700,72 @@
     function updateHydroChart() {
       if (!hydroChart) return;
       const hData = currentData.hydrograph;
-      hydroChart.data.labels = hData.hours.map(h => `Hour ${h}`);
+      hydroChart.data.labels = hData.hours.map(h => `H+${h}`);
       hydroChart.data.datasets[0].data = hData.p50;
       hydroChart.data.datasets[1].data = hData.p90;
       hydroChart.data.datasets[2].data = hData.p10;
       hydroChart.data.datasets[3].data = hData.danger_line;
+      hydroChart.data.datasets[4].data = hData.emergency_line;
       hydroChart.update();
     }
 
-    // Audible Web Audio API Siren Synth
-    function startSyntheticSiren() {
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        if (!webAudioCtx) {
-          webAudioCtx = new AudioCtx();
-        }
-        if (webAudioCtx.state === 'suspended') {
-          webAudioCtx.resume();
-        }
-        if (oscillator) {
-          stopSyntheticSiren();
-        }
-        oscillator = webAudioCtx.createOscillator();
-        gainNode = webAudioCtx.createGain();
-        oscillator.type = 'sawtooth';
-
-        const now = webAudioCtx.currentTime;
-        oscillator.frequency.setValueAtTime(800, now);
-        for (let i = 0; i < 30; i++) {
-          oscillator.frequency.linearRampToValueAtTime(1200, now + (i * 0.7) + 0.35);
-          oscillator.frequency.linearRampToValueAtTime(800, now + (i * 0.7) + 0.7);
-        }
-
-        gainNode.gain.setValueAtTime(0.25, now);
-        oscillator.connect(gainNode);
-        gainNode.connect(webAudioCtx.destination);
-        oscillator.start();
-        isSirenActive = true;
-
-        document.getElementById('sirenActionBtn').innerText = "🔇 Silence Siren";
-        document.getElementById('testSirenBtn').innerText = "🔇 Silence Siren";
-      } catch (err) {
-        console.warn("Audio Context Error:", err);
+    // Web Audio Emergency Siren
+    function initWebAudio() {
+      if (!webAudioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        webAudioCtx = new AudioContext();
+      }
+      if (webAudioCtx.state === 'suspended') {
+        webAudioCtx.resume();
       }
     }
 
-    function stopSyntheticSiren() {
-      if (oscillator) {
-        try { oscillator.stop(); oscillator.disconnect(); } catch (e) {}
-        oscillator = null;
+    function startSyntheticSiren() {
+      initWebAudio();
+      if (isSirenActive) return;
+
+      oscillator = webAudioCtx.createOscillator();
+      gainNode = webAudioCtx.createGain();
+
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(450, webAudioCtx.currentTime);
+
+      const now = webAudioCtx.currentTime;
+      for (let i = 0; i < 30; i++) {
+        const cycleStart = now + (i * 2.2);
+        oscillator.frequency.exponentialRampToValueAtTime(880, cycleStart + 1.1);
+        oscillator.frequency.exponentialRampToValueAtTime(450, cycleStart + 2.2);
       }
-      isSirenActive = false;
+
+      gainNode.gain.setValueAtTime(0.001, webAudioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.18, webAudioCtx.currentTime + 0.3);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(webAudioCtx.destination);
+
+      oscillator.start();
+      isSirenActive = true;
+      document.getElementById('sirenActionBtn').innerText = "⏹️ Silence Siren";
+      document.getElementById('testSirenBtn').innerText = "⏹️ Stop Siren";
+    }
+
+    function stopSyntheticSiren() {
+      if (!isSirenActive || !oscillator) return;
+      try {
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, webAudioCtx.currentTime + 0.2);
+        setTimeout(() => {
+          if (oscillator) {
+            oscillator.stop();
+            oscillator.disconnect();
+            oscillator = null;
+          }
+          isSirenActive = false;
+        }, 220);
+      } catch (e) {
+        isSirenActive = false;
+      }
       document.getElementById('sirenActionBtn').innerText = "🔊 Sound Siren Now";
-      document.getElementById('testSirenBtn').innerText = "🔔 Test Siren Sound";
+      document.getElementById('testSirenBtn').innerText = "🔔 Test Siren";
     }
 
     function toggleWebAudioSiren() {
@@ -963,14 +1783,32 @@
       }
     }
 
-    // Lookup City API
+    // Set Operating Mode (Live Sensors vs Simulation)
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('modeLiveBtn').classList.toggle('active', mode === 'live');
+      document.getElementById('modeSimBtn').classList.toggle('active', mode === 'simulation');
+      document.getElementById('modeStatusLabel').innerText = (mode === 'live') ? 'Live Streaming Feed' : 'Manual Sim Active';
+      lookupCity();
+    }
+
+    // Search / Analyze City
     async function lookupCity() {
       const query = document.getElementById('cityInput').value.trim();
       if (!query) return;
 
-      const resp = await fetch(`/api/city-features?city=${encodeURIComponent(query)}`);
-      const newData = await resp.json();
-      applyNewState(newData);
+      const btn = document.getElementById('searchBtn');
+      btn.innerText = "⏳ Loading...";
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch(`/api/city-features?city=${encodeURIComponent(query)}&mode=${currentMode}`);
+        const newData = await resp.json();
+        applyNewState(newData, true);
+      } finally {
+        btn.innerText = "🔍 Analyze";
+        btn.disabled = false;
+      }
     }
 
     function selectPreset(val) {
@@ -980,8 +1818,16 @@
       lookupCity();
     }
 
-    // Telemetry Slider Updates
-    async function updateSimulation() {
+    // Sliders
+    function handleSliderInput() {
+      // If user drags slider, automatically toggle to Simulation mode
+      if (currentMode === 'live') {
+        currentMode = 'simulation';
+        document.getElementById('modeLiveBtn').classList.remove('active');
+        document.getElementById('modeSimBtn').classList.add('active');
+        document.getElementById('modeStatusLabel').innerText = 'Manual Sim Active';
+      }
+
       const stage = parseFloat(document.getElementById('sliderStage').value);
       const rate = parseFloat(document.getElementById('sliderRate').value);
       const boost = parseFloat(document.getElementById('sliderBoost').value);
@@ -992,6 +1838,11 @@
       document.getElementById('valBoost').innerText = boost.toFixed(2) + 'x';
       document.getElementById('valInundation').innerText = inundation + ' ha';
 
+      clearTimeout(simDebounceTimer);
+      simDebounceTimer = setTimeout(() => updateSimulation(stage, rate, boost, inundation), 180);
+    }
+
+    async function updateSimulation(stage, rate, boost, inundation) {
       const resp = await fetch('/api/city-features', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1000,18 +1851,31 @@
           sim_stage: stage,
           sim_rate: rate,
           sim_prob_boost: boost,
-          sim_inundation: inundation
+          sim_inundation: inundation,
+          mode: currentMode
         })
       });
 
       const newData = await resp.json();
-      applyNewState(newData);
+      applyNewState(newData, false);
     }
 
-    function applyNewState(newData) {
+    function applyNewState(newData, syncSliders = false) {
       currentData = newData;
 
-      // Update City Card
+      if (syncSliders) {
+        document.getElementById('sliderStage').value = newData.sim_stage;
+        document.getElementById('sliderRate').value = newData.sim_rate;
+        document.getElementById('sliderBoost').value = newData.sim_prob_boost;
+        document.getElementById('sliderInundation').value = newData.sim_inundation;
+
+        document.getElementById('valStage').innerText = Number(newData.sim_stage).toFixed(1) + ' m';
+        document.getElementById('valRate').innerText = (newData.sim_rate >= 0 ? '+' : '') + Number(newData.sim_rate).toFixed(2) + ' m/h';
+        document.getElementById('valBoost').innerText = Number(newData.sim_prob_boost).toFixed(2) + 'x';
+        document.getElementById('valInundation').innerText = newData.sim_inundation + ' ha';
+      }
+
+      // City Strip
       document.getElementById('cityFlag').innerText = newData.flag || '📍';
       document.getElementById('cityName').innerText = newData.city;
       document.getElementById('cityCountry').innerText = newData.country;
@@ -1019,102 +1883,155 @@
       document.getElementById('cityRegime').innerText = newData.flood_type;
       document.getElementById('cityCoords').innerText = `${newData.center_lat.toFixed(4)}°N, ${newData.center_lon.toFixed(4)}°E`;
       document.getElementById('tagDanger').innerText = newData.danger_stage_m + 'm';
-      document.getElementById('tagHotspots').innerText = `${newData.hotspots.length} Active Zones`;
-      document.getElementById('tagShelters').innerText = `${newData.shelters.length} Centers`;
+      document.getElementById('tagHotspots').innerText = `${newData.hotspots.length} Zones`;
+      document.getElementById('tagPop').innerText = newData.exposure_summary ? newData.exposure_summary.total_exposed_population : '0';
+      document.getElementById('tagBldgs').innerText = newData.exposure_summary ? newData.exposure_summary.total_buildings_at_risk : '0';
       document.getElementById('tagLang').innerText = newData.language;
 
-      // Severity Badge
       const sevBadge = document.getElementById('severityBadge');
       sevBadge.innerText = newData.severity_level;
       sevBadge.className = 'badge ' + (newData.severity_level === 'EMERGENCY' ? 'badge-critical' : (newData.severity_level === 'WARNING' ? 'badge-warning' : 'badge-safe'));
 
-      // Top Metrics
-      document.getElementById('mStage').innerText = newData.sim_stage.toFixed(2) + ' m';
-      document.getElementById('mRate').innerText = (newData.sim_rate >= 0 ? '+' : '') + newData.sim_rate.toFixed(2) + ' m/h rise';
-      document.getElementById('mDanger').innerText = newData.danger_stage_m.toFixed(2) + ' m';
+      // Telemetry Bar
+      if (newData.weather) {
+        document.getElementById('telRain').innerText = `${newData.weather.current_rain_mm_h} mm/h`;
+        document.getElementById('telAccum').innerText = `24h Accum: ${newData.weather.accum_24h_mm} mm • ${newData.weather.condition}`;
+      }
+      if (newData.hydrology) {
+        document.getElementById('telStage').innerText = `${newData.sim_stage} m (+${newData.sim_rate} m/h)`;
+        document.getElementById('telStation').innerText = newData.hydrology.station_name;
+      }
+      if (newData.exposure_summary) {
+        document.getElementById('telPopVal').innerText = newData.exposure_summary.total_exposed_population;
+        document.getElementById('telDamageVal').innerText = `${newData.exposure_summary.total_buildings_at_risk} bldgs (~$${newData.exposure_summary.total_estimated_loss_usd_m}M)`;
+      }
+
+      // KPIs
+      document.getElementById('mStage').innerText = Number(newData.sim_stage).toFixed(2) + ' m';
+      document.getElementById('mRate').innerText = (newData.sim_rate >= 0 ? '+' : '') + Number(newData.sim_rate).toFixed(2) + ' m/h rise';
+      document.getElementById('mDanger').innerText = Number(newData.danger_stage_m).toFixed(2) + ' m';
       document.getElementById('mRisk').innerText = newData.max_risk_percent + '%';
       document.getElementById('mInundation').innerText = newData.sim_inundation + ' ha';
       document.getElementById('mSeverity').innerText = newData.severity_level;
 
-      // Alarm Banner & Audio
+      // Alarm Banner
       const alarmBanner = document.getElementById('alarmBanner');
       document.getElementById('alarmCity').innerText = newData.city.toUpperCase();
       document.getElementById('alarmProb').innerText = newData.max_risk_percent + '%';
-      
+
       if (newData.should_alarm) {
         alarmBanner.classList.remove('hidden');
+        document.body.classList.add('alarm-mode');
         if (document.getElementById('alarmEnabled').checked && !isSirenActive) {
           startSyntheticSiren();
         }
       } else {
         alarmBanner.classList.add('hidden');
-        if (isSirenActive) {
-          stopSyntheticSiren();
-        }
+        document.body.classList.remove('alarm-mode');
+        if (isSirenActive) stopSyntheticSiren();
       }
 
-      // Update Map Markers
       renderMapMarkers();
-
-      // Update Hydrograph Chart
       updateHydroChart();
 
-      // Update Radar Table
+      // Hotspots Table with WorldPop & xBD damage
       const tbody = document.getElementById('hotspotsTableBody');
-      tbody.innerHTML = '';
-      (newData.hotspots || []).forEach(h => {
+      tbody.innerHTML = (newData.hotspots || []).map(h => {
         const badgeClass = h.risk_category.includes('RED') ? 'badge-critical' : (h.risk_category.includes('ORANGE') ? 'badge-warning' : 'badge-safe');
-        tbody.innerHTML += `
+        return `
           <tr>
             <td><b>${h.name}</b></td>
             <td>${h.river}</td>
-            <td><b>${h.prob_percent}</b></td>
+            <td class="mono"><b>${h.prob_percent}</b></td>
             <td><span class="badge ${badgeClass}">${h.risk_category}</span></td>
-            <td>${h.stage_m} m</td>
-            <td>${h.danger_m} m</td>
-            <td>${h.population}</td>
+            <td class="mono">${h.stage_m} m</td>
+            <td class="mono">${h.population}</td>
+            <td class="mono">${h.buildings_at_risk}</td>
+            <td class="mono">$${h.estimated_loss_usd_m}M</td>
           </tr>
         `;
-      });
+      }).join('');
 
-      // Update Advisories
+      // Crisis Feed
+      const crisisContainer = document.getElementById('crisisFeedContainer');
+      if (crisisContainer && newData.crisis_feed) {
+        crisisContainer.innerHTML = newData.crisis_feed.map(rep => `
+          <div class="crisis-item">
+            <div class="crisis-header">
+              <span class="crisis-author">${rep.author}</span>
+              <span class="badge badge-critical">${rep.urgency_badge}</span>
+              <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">${rep.timestamp}</span>
+            </div>
+            <div class="crisis-text">${rep.text}</div>
+            <div class="crisis-footer">
+              <span>📍 ${rep.location_name} (${rep.lat}, ${rep.lon})</span>
+              <span>⚡ HumAID: <b>${rep.category}</b> • Urgency: <b>${rep.urgency_score}</b></span>
+              <span style="color: #38bdf8;">✓ Verified via CrisisMMD NLP</span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Advisories
       document.getElementById('advEnglish').innerText = newData.english_advisory;
       document.getElementById('advLocal').innerText = newData.local_advisory;
       document.getElementById('advLang').innerText = newData.language;
 
-      const rList = document.getElementById('routesList');
-      rList.innerHTML = '';
-      (newData.evacuation_routes || []).forEach(r => {
-        rList.innerHTML += `<div class="list-item">🚗 <b>${r}</b></div>`;
-      });
+      document.getElementById('routesList').innerHTML = (newData.evacuation_routes || [])
+        .map(r => `<div class="list-item">🚗 <b>${r}</b></div>`).join('');
 
-      const sList = document.getElementById('sheltersList');
-      sList.innerHTML = '';
-      (newData.shelters || []).forEach(s => {
-        sList.innerHTML += `<div class="list-item">🏠 <b>${s.name}</b> <i>(Cap: ${s.capacity})</i></div>`;
-      });
+      document.getElementById('sheltersList').innerHTML = (newData.shelters || [])
+        .map(s => `<div class="list-item">🏠 <b>${s.name}</b> <span style="color: var(--text-muted); margin-left: auto;">Cap: ${s.capacity}</span></div>`).join('');
     }
 
-    function switchTab(tabId) {
+    function switchTab(tabId, btnElem) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-      event.target.classList.add('active');
+      if (btnElem) btnElem.classList.add('active');
       document.getElementById(tabId).classList.add('active');
     }
 
-    // Enter key triggers city lookup
+    // Modal Operations
+    function openDatasetsModal() {
+      document.getElementById('datasetsModal').classList.add('open');
+    }
+
+    function closeDatasetsModal() {
+      document.getElementById('datasetsModal').classList.remove('open');
+    }
+
+    function filterModalDatasets(filter, btnElem) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      if (btnElem) btnElem.classList.add('active');
+
+      const rows = document.querySelectorAll('#modalDatasetsTable tbody tr');
+      rows.forEach(r => {
+        const cat = r.getAttribute('data-cat') || '';
+        const isRealtime = r.getAttribute('data-realtime') === 'True' || r.getAttribute('data-realtime') === 'true';
+
+        if (filter === 'all') {
+          r.style.display = '';
+        } else if (filter === 'realtime') {
+          r.style.display = isRealtime ? '' : 'none';
+        } else if (filter === 'satellite') {
+          r.style.display = (cat.includes('satellite') || cat.includes('radar') || cat.includes('imagery')) ? '' : 'none';
+        } else if (filter === 'hydrology') {
+          r.style.display = (cat.includes('hydrolog') || cat.includes('weather') || cat.includes('gauge')) ? '' : 'none';
+        } else if (filter === 'social') {
+          r.style.display = (cat.includes('social') || cat.includes('exposure') || cat.includes('population')) ? '' : 'none';
+        }
+      });
+    }
+
     document.getElementById('cityInput').addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') {
-        lookupCity();
-      }
+      if (e.key === 'Enter') lookupCity();
     });
 
-    // Initialize map and chart on page load
     window.addEventListener('DOMContentLoaded', () => {
       initMap();
       initHydroChart();
     });
   </script>
 </body>
+
 </html>

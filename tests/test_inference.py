@@ -156,8 +156,14 @@ def test_city_feature_resolver():
 
 
 def test_flask_app_endpoints():
-    """Verify Flask web dashboard routes and JSON endpoints."""
+    """Verify Flask web dashboard routes, live datasets, and JSON endpoints."""
     from src.api.flask_app import app
+    from src.data.dataset_registry import DatasetRegistry
+    from src.data.realtime_weather import RealtimeWeatherEngine
+    from src.data.realtime_hydrology import RealtimeHydrologyEngine
+    from src.data.exposure_engine import ExposureEngine
+    from src.data.crisis_social_feed import CrisisSocialFeedEngine
+
     app.config["TESTING"] = True
     client = app.test_client()
 
@@ -165,23 +171,69 @@ def test_flask_app_endpoints():
     res_health = client.get("/health")
     assert res_health.status_code == 200
     assert res_health.get_json()["status"] == "healthy"
+    assert res_health.get_json()["datasets_count"] == 20
 
     # 2. Main HTML dashboard
     res_index = client.get("/")
     assert res_index.status_code == 200
     assert b"Flood-AI" in res_index.data
+    assert b"datasets" in res_index.data or b"Datasets" in res_index.data
 
-    # 3. City features API
-    res_city = client.get("/api/city-features?city=Paris")
+    # 3. City features API (Live Mode)
+    res_city = client.get("/api/city-features?city=Paris&mode=live")
     assert res_city.status_code == 200
     city_json = res_city.get_json()
     assert city_json["city"] == "Paris"
     assert "hotspots" in city_json
     assert len(city_json["hotspots"]) > 0
+    assert "weather" in city_json
+    assert "hydrology" in city_json
+    assert "crisis_feed" in city_json
+    assert "exposure_summary" in city_json
 
-    # 4. Siren audio endpoint
+    # 4. Datasets API endpoint (All 20 Datasets)
+    res_ds = client.get("/api/datasets")
+    assert res_ds.status_code == 200
+    ds_json = res_ds.get_json()
+    assert ds_json["count"] == 20
+    assert len(ds_json["datasets"]) == 20
+
+    # 5. Siren audio endpoint
     res_audio = client.get("/api/siren-audio")
     assert res_audio.status_code == 200
     assert "data:audio/wav;base64," in res_audio.get_json()["audio_data_uri"]
+
+
+def test_20_datasets_registry_and_models():
+    """Verify 20 official multi-sensor datasets catalog and ingestion engines."""
+    from src.data.dataset_registry import DatasetRegistry
+    from src.data.exposure_engine import ExposureEngine
+    from src.data.crisis_social_feed import CrisisSocialFeedEngine
+
+    catalog = DatasetRegistry.load_catalog()
+    assert len(catalog) == 20
+
+    # Check key datasets
+    names = [d["dataset_name"] for d in catalog]
+    assert "Sen1Floods11" in names
+    assert "xBD" in names
+    assert "GPM IMERG" in names
+    assert "USGS Water Data" in names
+    assert "WorldPop" in names
+    assert "CrisisMMD" in names
+    assert "HumAID" in names
+
+    # Check WorldPop & xBD Exposure calculations
+    exp = ExposureEngine.calculate_hotspot_exposure("Dhaka", radius_m=1500, flood_probability=0.88, hotspot_name="Buriganga Basin")
+    assert exp["exposed_population"] > 0
+    assert exp["xbd_total_buildings"] > 0
+    assert exp["xbd_damage_breakdown"]["destroyed_level3"] > 0
+
+    # Check Crisis Social Feed
+    feed = CrisisSocialFeedEngine.get_city_crisis_feed("Dhaka", 23.81, 90.41, count=3)
+    assert len(feed) == 3
+    assert feed[0]["verified"] is True
+    assert "CrisisMMD" in feed[0]["source"]
+
 
 

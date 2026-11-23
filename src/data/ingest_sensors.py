@@ -8,10 +8,17 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
+import urllib.request
+import urllib.parse
+import json
+import logging
 import numpy as np
 import pandas as pd
-import requests
-import logging
+
+try:
+    import requests
+except ImportError:
+    requests = None
 
 try:
     from loguru import logger
@@ -75,9 +82,16 @@ class USGSSensorIngestor:
 
         logger.info(f"Querying USGS NWIS for site {site_id} from {start_date}...")
         try:
-            resp = requests.get(self.BASE_URL, params=params, timeout=self.timeout)
-            resp.raise_for_status()
-            payload = resp.json()
+            if requests is not None:
+                resp = requests.get(self.BASE_URL, params=params, timeout=self.timeout)
+                resp.raise_for_status()
+                payload = resp.json()
+            else:
+                qs = urllib.parse.urlencode(params)
+                req_url = f"{self.BASE_URL}?{qs}"
+                req = urllib.request.Request(req_url, headers={"User-Agent": "Flood-AI/2.0"})
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    payload = json.loads(resp.read().decode("utf-8"))
         except Exception as e:
             logger.error(f"Failed to fetch USGS data for site {site_id}: {e}")
             return pd.DataFrame()

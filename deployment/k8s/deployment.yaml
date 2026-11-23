@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flood-ai-api
+  labels:
+    app: flood-ai-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flood-ai-api
+  template:
+    metadata:
+      labels:
+        app: flood-ai-api
+    spec:
+      containers:
+      - name: api
+        image: flood-ai:latest
+        imagePullPolicy: IfNotPresent
+        command: ["uvicorn", "src.api.fastapi_app:app", "--host", "0.0.0.0", "--port", "8000"]
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flood-ai-api-service
+spec:
+  type: ClusterIP
+  selector:
+    app: flood-ai-api
+  ports:
+  - port: 80
+    targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flood-ai-dashboard
+  labels:
+    app: flood-ai-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flood-ai-dashboard
+  template:
+    metadata:
+      labels:
+        app: flood-ai-dashboard
+    spec:
+      containers:
+      - name: dashboard
+        image: flood-ai:latest
+        imagePullPolicy: IfNotPresent
+        command: ["streamlit", "run", "src/api/streamlit_dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]
+        ports:
+        - containerPort: 8501
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flood-ai-dashboard-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: flood-ai-dashboard
+  ports:
+  - port: 8501
+    targetPort: 8501

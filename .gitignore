@@ -1,0 +1,78 @@
+# ==============================================================================
+# Flood-AI Git Ignore Rules
+# ==============================================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# Data Files (Managed via DVC / Git LFS)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/external/*
+!data/external/.gitkeep
+
+*.tif
+*.tiff
+*.geotiff
+*.jp2
+*.nc
+*.nc4
+*.h5
+*.hdf5
+*.SAFE/
+*.zip
+*.tar.gz
+*.parquet
+*.feather
+
+# Model Checkpoints & Weights
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.onnx
+*.tflite
+checkpoints/
+weights/
+
+# MLOps & Experiment Tracking
+mlruns/
+wandb/
+.dvc/cache/
+
+# Credentials & Secrets
+.env
+.env.*
+!.env.example
+credentials.json
+*.pem
+*.key
+
+# Logs & Cache
+logs/
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

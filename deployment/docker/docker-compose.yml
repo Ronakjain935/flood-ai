@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  flood-ai-api:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    container_name: flood_ai_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    command: ["uvicorn", "src.api.fastapi_app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  flood-ai-dashboard:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    container_name: flood_ai_dashboard
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    command: ["streamlit", "run", "src/api/streamlit_dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    depends_on:
+      - flood-ai-api

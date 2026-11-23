@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flood-AI | Universal Early Warning & Siren Alarm Platform</title>
+
+  <!-- Leaflet CSS for Geospatial Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <!-- Chart.js for 72h Hydrograph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --primary: #38bdf8;
+      --danger-red: #ef4444;
+      --warning-orange: #f97316;
+      --safe-green: #22c55e;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 380px;
+      background-color: #0d1322;
+      border-right: 1px solid var(--card-border);
+      padding: 24px 20px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      font-size: 32px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--primary);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-field {
+      width: 100%;
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+    }
+
+    .btn {
+      background-color: var(--primary);
+      color: #0f172a;
+      border: none;
+      font-weight: 700;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background-color: #7dd3fc;
+    }
+
+    .btn-danger {
+      background-color: var(--danger-red);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #dc2626;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .slider-header span {
+      color: var(--text-muted);
+    }
+
+    .slider-header b {
+      color: var(--primary);
+    }
+
+    input[type=range] {
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      padding: 24px 28px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Emergency Siren Banner */
+    @keyframes emergency-pulse {
+      0% { background-color: #7f1d1d; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+      50% { background-color: #b91c1c; box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); }
+      100% { background-color: #7f1d1d; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+    }
+
+    .alarm-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-radius: 10px;
+      border: 2px solid #ef4444;
+      animation: emergency-pulse 1.4s infinite ease-in-out;
+      color: white;
+    }
+
+    .alarm-banner.hidden {
+      display: none;
+    }
+
+    .alarm-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .alarm-icon {
+      font-size: 32px;
+      animation: bounce 0.6s infinite alternate;
+    }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-4px); }
+    }
+
+    /* Identified City Feature Card */
+    .city-card {
+      background: linear-gradient(135deg, #111827, #1e293b);
+      border: 1px solid #38bdf8;
+      border-radius: 12px;
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+
+    .city-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .city-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-critical { background: var(--danger-red); color: white; }
+    .badge-warning { background: var(--warning-orange); color: white; }
+    .badge-safe { background: var(--safe-green); color: white; }
+
+    .city-details-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+
+    .city-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .tag {
+      background: #334155;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    /* Metric Cards Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 16px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: var(--primary);
+    }
+
+    /* Map and Grid Container */
+    .map-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .map-legend {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    #floodMap {
+      width: 100%;
+      height: 480px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background-color: #0b1120;
+    }
+
+    /* Tabs Layout */
+    .tabs-header {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 8px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: #1e293b;
+      color: var(--primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Radar Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    th {
+      background-color: #1a2234;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    tr:hover {
+      background-color: #172033;
+    }
+
+    /* Advisories */
+    .advisory-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .advisory-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .advisory-text {
+      background: #1e293b;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      border-left: 4px solid var(--primary);
+    }
+
+    .advisory-text.local {
+      border-left-color: var(--warning-orange);
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left Sidebar Controls -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-icon">🌊</span>
+      <div>
+        <div class="brand-title">Flood-AI</div>
+        <div class="brand-subtitle">Early Warning & Siren Platform</div>
+      </div>
+    </div>
+
+    <!-- City Intelligence Search -->
+    <div>
+      <div class="section-title">🏙️ Universal City Intelligence</div>
+      <div class="search-box">
+        <input type="text" id="cityInput" class="input-field" placeholder="Mention ANY city (e.g. Mumbai, Miami, Paris)..." value="{{ data.city }}">
+        <button id="searchBtn" class="btn" onclick="lookupCity()">Search</button>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <select id="presetSelect" class="input-field" onchange="selectPreset(this.value)">
+          <option value="">-- Quick Preset Cities --</option>
+          {% for p in preset_cities %}
+          <option value="{{ p }}" {% if data.city in p %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Hydro-Telemetry Overrides -->
+    <div>
+      <div class="section-title">🎛️ Live Hydro-Telemetry Controls</div>
+      
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>Current River Stage:</span>
+          <b id="valStage">{{ data.sim_stage }} m</b>
+        </div>
+        <input type="range" id="sliderStage" min="1.0" max="8.0" step="0.1" value="{{ data.sim_stage }}" oninput="updateSimulation()">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>Rate of Rise:</span>
+          <b id="valRate">{{ data.sim_rate }} m/h</b>
+        </div>
+        <input type="range" id="sliderRate" min="-0.2" max="0.8" step="0.05" value="{{ data.sim_rate }}" oninput="updateSimulation()">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>Probability Sensitivity:</span>
+          <b id="valBoost">{{ data.sim_prob_boost }}x</b>
+        </div>
+        <input type="range" id="sliderBoost" min="0.5" max="1.5" step="0.05" value="{{ data.sim_prob_boost }}" oninput="updateSimulation()">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>Estimated Inundation:</span>
+          <b id="valInundation">{{ data.sim_inundation }} ha</b>
+        </div>
+        <input type="range" id="sliderInundation" min="50" max="2500" step="50" value="{{ data.sim_inundation }}" oninput="updateSimulation()">
+      </div>
+    </div>
+
+    <!-- Audio Siren Alarm Controls -->
+    <div>
+      <div class="section-title">🔊 Emergency Audio Siren Alarm</div>
+      <div style="display: flex; gap: 8px; flex-direction: column;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+          <input type="checkbox" id="alarmEnabled" checked onchange="toggleAlarmEnabled()">
+          <span>Enable Automatic Warning Siren</span>
+        </label>
+        <button id="testSirenBtn" class="btn btn-danger" onclick="toggleWebAudioSiren()">🔔 Test Siren Sound</button>
+      </div>
+    </div>
+
+    <div style="font-size: 11px; color: #64748b; margin-top: auto; text-align: center;">
+      Flood-AI Humanitarian Open-Access Platform • Sentinel-1 SAR & Spatio-Temporal Hydro-Forecasting
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+
+    <!-- Emergency Siren Alert Banner -->
+    <div id="alarmBanner" class="alarm-banner {% if not data.should_alarm %}hidden{% endif %}">
+      <div class="alarm-info">
+        <span class="alarm-icon">🚨</span>
+        <div>
+          <b style="font-size: 16px; letter-spacing: 0.5px;">CRITICAL FLOOD ALARM ACTIVE: <span id="alarmCity">{{ data.city | upper }}</span></b>
+          <div style="font-size: 13px; opacity: 0.95;">High flood probability (<span id="alarmProb">{{ data.max_risk_percent }}%</span>) detected. Water stage exceeding danger marks.</div>
+        </div>
+      </div>
+      <div>
+        <button id="sirenActionBtn" class="btn" style="background: white; color: #b91c1c;" onclick="toggleWebAudioSiren()">🔊 Sound Siren Now</button>
+      </div>
+    </div>
+
+    <!-- Automatically Identified City Feature Card -->
+    <div class="city-card">
+      <div class="city-title-row">
+        <div class="city-name">
+          <span id="cityFlag">{{ data.flag }}</span>
+          <span>Automatically Identified Features: <b id="cityName">{{ data.city }}</b>, <span id="cityCountry">{{ data.country }}</span></span>
+        </div>
+        <span id="severityBadge" class="badge {% if data.severity_level == 'EMERGENCY' %}badge-critical{% elif data.severity_level == 'WARNING' %}badge-warning{% else %}badge-safe{% endif %}">
+          {{ data.severity_level }}
+        </span>
+      </div>
+
+      <div class="city-details-row">
+        <div>🌊 <b>Watercourse / Basin:</b> <span id="cityBasin">{{ data.basin }}</span></div>
+        <div>⚠️ <b>Flood Regime:</b> <span id="cityRegime">{{ data.flood_type }}</span></div>
+        <div>📍 <b>Coordinates:</b> <span id="cityCoords">{{ data.center_lat }}°N, {{ data.center_lon }}°E</span></div>
+      </div>
+
+      <div class="city-tags">
+        <span class="tag">🚨 Danger Mark: <b id="tagDanger">{{ data.danger_stage_m }}m</b></span>
+        <span class="tag">🔴 Red Spots: <b id="tagHotspots">{{ data.hotspots | length }} Active Zones</b></span>
+        <span class="tag">🟢 Safe Shelters: <b id="tagShelters">{{ data.shelters | length }} Centers</b></span>
+        <span class="tag">🗣️ Language: <b id="tagLang">{{ data.language }}</b></span>
+      </div>
+    </div>
+
+    <!-- Top Key Metrics Cards -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Current River Stage</div>
+        <div id="mStage" class="metric-value">{{ data.sim_stage }} m</div>
+        <div id="mRate" class="metric-sub">+{{ data.sim_rate }} m/h rise</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Danger Threshold</div>
+        <div id="mDanger" class="metric-value">{{ data.danger_stage_m }} m</div>
+        <div class="metric-sub">Hydraulic baseline</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Peak Flood Risk</div>
+        <div id="mRisk" class="metric-value">{{ data.max_risk_percent }}%</div>
+        <div id="mRiskSub" class="metric-sub">🔴 Critical Red Spots</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Estimated Inundation</div>
+        <div id="mInundation" class="metric-value">{{ data.sim_inundation }} ha</div>
+        <div class="metric-sub">+45 ha in 6h</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Civil Defense Alert</div>
+        <div id="mSeverity" class="metric-value" style="font-size: 20px; color: #f87171;">{{ data.severity_level }}</div>
+        <div class="metric-sub">Frontline dispatch</div>
+      </div>
+    </div>
+
+    <!-- Geospatial Inundation Map Container -->
+    <div class="map-container">
+      <div class="map-header">
+        <b style="font-size: 16px;">🗺️ Geospatial Inundation Probability & Red Spot Hotspots</b>
+        <div class="map-legend">
+          <div class="legend-item"><span class="legend-dot" style="background: var(--danger-red);"></span> 🔴 Red Spots (Prob ≥ 75%)</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--warning-orange);"></span> 🟠 Orange Spots (50-74%)</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--safe-green);"></span> 🟢 Safe Shelters</div>
+        </div>
+      </div>
+      <div id="floodMap"></div>
+    </div>
+
+    <!-- Tabs: Radar Table, 72h Hydrograph, Multilingual Advisories -->
+    <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px;">
+      <div class="tabs-header">
+        <button class="tab-btn active" onclick="switchTab('tabRadar')">📡 Live Risk Radar Table</button>
+        <button class="tab-btn" onclick="switchTab('tabHydro')">📈 72h Hydrograph Nowcast</button>
+        <button class="tab-btn" onclick="switchTab('tabAdvisories')">📢 Multilingual Directives</button>
+      </div>
+
+      <!-- Tab 1: Risk Radar Table -->
+      <div id="tabRadar" class="tab-content active">
+        <table id="hotspotsTable">
+          <thead>
+            <tr>
+              <th>Monitored Hotspot</th>
+              <th>River / Canal</th>
+              <th>Flood Risk</th>
+              <th>Status</th>
+              <th>Water Stage</th>
+              <th>Danger Mark</th>
+              <th>Population at Risk</th>
+            </tr>
+          </thead>
+          <tbody id="hotspotsTableBody">
+            {% for h in data.hotspots %}
+            <tr>
+              <td><b>{{ h.name }}</b></td>
+              <td>{{ h.river }}</td>
+              <td><b>{{ h.prob_percent }}</b></td>
+              <td>
+                <span class="badge {% if 'RED' in h.risk_category %}badge-critical{% elif 'ORANGE' in h.risk_category %}badge-warning{% else %}badge-safe{% endif %}">
+                  {{ h.risk_category }}
+                </span>
+              </td>
+              <td>{{ h.stage_m }} m</td>
+              <td>{{ h.danger_m }} m</td>
+              <td>{{ h.population }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tab 2: Hydrograph Chart -->
+      <div id="tabHydro" class="tab-content">
+        <div style="height: 320px; position: relative;">
+          <canvas id="hydroChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Tab 3: Multilingual Advisories -->
+      <div id="tabAdvisories" class="tab-content">
+        <div class="advisory-grid">
+          <div class="advisory-card">
+            <b>🌐 Official English Directive</b>
+            <div id="advEnglish" class="advisory-text">{{ data.english_advisory }}</div>
+            <b>🛣️ Designated Safe Evacuation Corridors:</b>
+            <div id="routesList">
+              {% for r in data.evacuation_routes %}
+              <div class="list-item">🚗 <b>{{ r }}</b></div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="advisory-card">
+            <b>{{ data.flag }} Local Language Directive (<span id="advLang">{{ data.language }}</span>)</b>
+            <div id="advLocal" class="advisory-text local">{{ data.local_advisory }}</div>
+            <b>🏠 Verified Safe High-Ground Shelters:</b>
+            <div id="sheltersList">
+              {% for s in data.shelters %}
+              <div class="list-item">🏠 <b>{{ s.name }}</b> <i>(Cap: {{ s.capacity }})</i></div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Decoupled JSON State payload to eliminate VS Code syntax linter warnings -->
+  <script id="initial-state-payload" type="application/json">{{ data | tojson | safe }}</script>
+
+  <script>
+    // State Store (Safely parsed from JSON payload)
+    const stateElem = document.getElementById("initial-state-payload");
+    let currentData = stateElem ? JSON.parse(stateElem.textContent) : {};
+    let map = null;
+    let markersLayer = null;
+    let hydroChart = null;
+
+    // Web Audio API Emergency Siren Synth
+    let webAudioCtx = null;
+    let oscillator = null;
+    let gainNode = null;
+    let isSirenActive = false;
+
+    function initMap() {
+      map = L.map('floodMap', {
+        center: [currentData.center_lat, currentData.center_lon],
+        zoom: currentData.zoom || 12,
+        zoomControl: true,
+      });
+
+      // Free Base Layers - NO API KEY REQUIRED
+      const osmStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      });
+
+      const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Earthstar Geographics',
+        maxZoom: 19
+      });
+
+      // Default OpenStreetMap (Free, clean, zero watermark)
+      osmStreet.addTo(map);
+
+      // Layer Control in Top Right to switch Street vs Satellite
+      const baseMaps = {
+        "🗺️ Street Map (Free)": osmStreet,
+        "🛰️ Satellite View (Free)": esriSatellite
+      };
+      L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+      markersLayer = L.layerGroup().addTo(map);
+      renderMapMarkers();
+    }
+
+    function renderMapMarkers() {
+      if (!markersLayer) return;
+      markersLayer.clearLayers();
+
+      // Plot Red Spots & Orange Spots
+      (currentData.hotspots || []).forEach(h => {
+        const circle = L.circle([h.lat, h.lon], {
+          color: h.color_hex,
+          fillColor: h.fill_color,
+          fillOpacity: 0.65,
+          radius: h.radius_m || 1500,
+          weight: 2
+        });
+
+        circle.bindPopup(`
+          <div style="font-family: sans-serif; font-size: 13px; line-height: 1.4;">
+            <b style="color: ${h.color_hex}; font-size: 14px;">🚨 ${h.name}</b><br/>
+            <b>River / Channel:</b> ${h.river}<br/>
+            <b>Flood Probability:</b> <span style="color: red; font-weight: bold;">${h.prob_percent}</span><br/>
+            <b>Water Stage:</b> ${h.stage_m}m (Danger: ${h.danger_m}m)<br/>
+            <b>Threat Category:</b> ${h.risk_category}<br/>
+            <b>Population at Risk:</b> ${h.population}
+          </div>
+        `);
+        circle.addTo(markersLayer);
+      });
+
+      // Plot Safe Shelters (Green Circles)
+      (currentData.shelters || []).forEach(s => {
+        const shelterMarker = L.circleMarker([s.lat, s.lon], {
+          color: '#ffffff',
+          fillColor: '#10b981',
+          fillOpacity: 0.9,
+          radius: 9,
+          weight: 2
+        });
+
+        shelterMarker.bindPopup(`
+          <div style="font-family: sans-serif; font-size: 13px;">
+            <b style="color: #10b981; font-size: 14px;">🏠 Safe Shelter</b><br/>
+            <b>Name:</b> ${s.name}<br/>
+            <b>Verified Capacity:</b> ${s.capacity} persons<br/>
+            <span style="color: #10b981; font-weight: bold;">✓ High Ground • Operational</span>
+          </div>
+        `);
+        shelterMarker.addTo(markersLayer);
+      });
+
+      // Center map
+      map.flyTo([currentData.center_lat, currentData.center_lon], currentData.zoom || 12, { duration: 1.2 });
+    }
+
+    function initHydroChart() {
+      const ctx = document.getElementById('hydroChart').getContext('2d');
+      const hData = currentData.hydrograph;
+
+      hydroChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: hData.hours.map(h => `Hour ${h}`),
+          datasets: [
+            {
+              label: 'Median Forecast (p50)',
+              data: hData.p50,
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56, 189, 248, 0.2)',
+              fill: false,
+              tension: 0.3,
+              borderWidth: 3
+            },
+            {
+              label: 'Pessimistic Surge (p90)',
+              data: hData.p90,
+              borderColor: '#f97316',
+              borderDash: [5, 5],
+              fill: '+1',
+              backgroundColor: 'rgba(249, 115, 22, 0.1)',
+              tension: 0.3,
+              borderWidth: 2
+            },
+            {
+              label: 'Optimistic Bound (p10)',
+              data: hData.p10,
+              borderColor: '#22c55e',
+              borderDash: [5, 5],
+              fill: false,
+              tension: 0.3,
+              borderWidth: 2
+            },
+            {
+              label: 'Danger Threshold',
+              data: hData.danger_line,
+              borderColor: '#ef4444',
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              title: { display: true, text: 'River Stage (meters)', color: '#9ca3af' },
+              grid: { color: '#1f2937' },
+              ticks: { color: '#cbd5e1' }
+            },
+            x: {
+              grid: { color: '#1f2937' },
+              ticks: { color: '#cbd5e1' }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: '#f3f4f6' } }
+          }
+        }
+      });
+    }
+
+    function updateHydroChart() {
+      if (!hydroChart) return;
+      const hData = currentData.hydrograph;
+      hydroChart.data.labels = hData.hours.map(h => `Hour ${h}`);
+      hydroChart.data.datasets[0].data = hData.p50;
+      hydroChart.data.datasets[1].data = hData.p90;
+      hydroChart.data.datasets[2].data = hData.p10;
+      hydroChart.data.datasets[3].data = hData.danger_line;
+      hydroChart.update();
+    }
+
+    // Audible Web Audio API Siren Synth
+    function startSyntheticSiren() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        if (!webAudioCtx) {
+          webAudioCtx = new AudioCtx();
+        }
+        if (webAudioCtx.state === 'suspended') {
+          webAudioCtx.resume();
+        }
+        if (oscillator) {
+          stopSyntheticSiren();
+        }
+        oscillator = webAudioCtx.createOscillator();
+        gainNode = webAudioCtx.createGain();
+        oscillator.type = 'sawtooth';
+
+        const now = webAudioCtx.currentTime;
+        oscillator.frequency.setValueAtTime(800, now);
+        for (let i = 0; i < 30; i++) {
+          oscillator.frequency.linearRampToValueAtTime(1200, now + (i * 0.7) + 0.35);
+          oscillator.frequency.linearRampToValueAtTime(800, now + (i * 0.7) + 0.7);
+        }
+
+        gainNode.gain.setValueAtTime(0.25, now);
+        oscillator.connect(gainNode);
+        gainNode.connect(webAudioCtx.destination);
+        oscillator.start();
+        isSirenActive = true;
+
+        document.getElementById('sirenActionBtn').innerText = "🔇 Silence Siren";
+        document.getElementById('testSirenBtn').innerText = "🔇 Silence Siren";
+      } catch (err) {
+        console.warn("Audio Context Error:", err);
+      }
+    }
+
+    function stopSyntheticSiren() {
+      if (oscillator) {
+        try { oscillator.stop(); oscillator.disconnect(); } catch (e) {}
+        oscillator = null;
+      }
+      isSirenActive = false;
+      document.getElementById('sirenActionBtn').innerText = "🔊 Sound Siren Now";
+      document.getElementById('testSirenBtn').innerText = "🔔 Test Siren Sound";
+    }
+
+    function toggleWebAudioSiren() {
+      if (isSirenActive) {
+        stopSyntheticSiren();
+      } else {
+        startSyntheticSiren();
+      }
+    }
+
+    function toggleAlarmEnabled() {
+      const enabled = document.getElementById('alarmEnabled').checked;
+      if (!enabled && isSirenActive) {
+        stopSyntheticSiren();
+      }
+    }
+
+    // Lookup City API
+    async function lookupCity() {
+      const query = document.getElementById('cityInput').value.trim();
+      if (!query) return;
+
+      const resp = await fetch(`/api/city-features?city=${encodeURIComponent(query)}`);
+      const newData = await resp.json();
+      applyNewState(newData);
+    }
+
+    function selectPreset(val) {
+      if (!val) return;
+      const cityName = val.split(',')[0].trim();
+      document.getElementById('cityInput').value = cityName;
+      lookupCity();
+    }
+
+    // Telemetry Slider Updates
+    async function updateSimulation() {
+      const stage = parseFloat(document.getElementById('sliderStage').value);
+      const rate = parseFloat(document.getElementById('sliderRate').value);
+      const boost = parseFloat(document.getElementById('sliderBoost').value);
+      const inundation = parseFloat(document.getElementById('sliderInundation').value);
+
+      document.getElementById('valStage').innerText = stage.toFixed(1) + ' m';
+      document.getElementById('valRate').innerText = (rate >= 0 ? '+' : '') + rate.toFixed(2) + ' m/h';
+      document.getElementById('valBoost').innerText = boost.toFixed(2) + 'x';
+      document.getElementById('valInundation').innerText = inundation + ' ha';
+
+      const resp = await fetch('/api/city-features', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: currentData.city,
+          sim_stage: stage,
+          sim_rate: rate,
+          sim_prob_boost: boost,
+          sim_inundation: inundation
+        })
+      });
+
+      const newData = await resp.json();
+      applyNewState(newData);
+    }
+
+    function applyNewState(newData) {
+      currentData = newData;
+
+      // Update City Card
+      document.getElementById('cityFlag').innerText = newData.flag || '📍';
+      document.getElementById('cityName').innerText = newData.city;
+      document.getElementById('cityCountry').innerText = newData.country;
+      document.getElementById('cityBasin').innerText = newData.basin;
+      document.getElementById('cityRegime').innerText = newData.flood_type;
+      document.getElementById('cityCoords').innerText = `${newData.center_lat.toFixed(4)}°N, ${newData.center_lon.toFixed(4)}°E`;
+      document.getElementById('tagDanger').innerText = newData.danger_stage_m + 'm';
+      document.getElementById('tagHotspots').innerText = `${newData.hotspots.length} Active Zones`;
+      document.getElementById('tagShelters').innerText = `${newData.shelters.length} Centers`;
+      document.getElementById('tagLang').innerText = newData.language;
+
+      // Severity Badge
+      const sevBadge = document.getElementById('severityBadge');
+      sevBadge.innerText = newData.severity_level;
+      sevBadge.className = 'badge ' + (newData.severity_level === 'EMERGENCY' ? 'badge-critical' : (newData.severity_level === 'WARNING' ? 'badge-warning' : 'badge-safe'));
+
+      // Top Metrics
+      document.getElementById('mStage').innerText = newData.sim_stage.toFixed(2) + ' m';
+      document.getElementById('mRate').innerText = (newData.sim_rate >= 0 ? '+' : '') + newData.sim_rate.toFixed(2) + ' m/h rise';
+      document.getElementById('mDanger').innerText = newData.danger_stage_m.toFixed(2) + ' m';
+      document.getElementById('mRisk').innerText = newData.max_risk_percent + '%';
+      document.getElementById('mInundation').innerText = newData.sim_inundation + ' ha';
+      document.getElementById('mSeverity').innerText = newData.severity_level;
+
+      // Alarm Banner & Audio
+      const alarmBanner = document.getElementById('alarmBanner');
+      document.getElementById('alarmCity').innerText = newData.city.toUpperCase();
+      document.getElementById('alarmProb').innerText = newData.max_risk_percent + '%';
+      
+      if (newData.should_alarm) {
+        alarmBanner.classList.remove('hidden');
+        if (document.getElementById('alarmEnabled').checked && !isSirenActive) {
+          startSyntheticSiren();
+        }
+      } else {
+        alarmBanner.classList.add('hidden');
+        if (isSirenActive) {
+          stopSyntheticSiren();
+        }
+      }
+
+      // Update Map Markers
+      renderMapMarkers();
+
+      // Update Hydrograph Chart
+      updateHydroChart();
+
+      // Update Radar Table
+      const tbody = document.getElementById('hotspotsTableBody');
+      tbody.innerHTML = '';
+      (newData.hotspots || []).forEach(h => {
+        const badgeClass = h.risk_category.includes('RED') ? 'badge-critical' : (h.risk_category.includes('ORANGE') ? 'badge-warning' : 'badge-safe');
+        tbody.innerHTML += `
+          <tr>
+            <td><b>${h.name}</b></td>
+            <td>${h.river}</td>
+            <td><b>${h.prob_percent}</b></td>
+            <td><span class="badge ${badgeClass}">${h.risk_category}</span></td>
+            <td>${h.stage_m} m</td>
+            <td>${h.danger_m} m</td>
+            <td>${h.population}</td>
+          </tr>
+        `;
+      });
+
+      // Update Advisories
+      document.getElementById('advEnglish').innerText = newData.english_advisory;
+      document.getElementById('advLocal').innerText = newData.local_advisory;
+      document.getElementById('advLang').innerText = newData.language;
+
+      const rList = document.getElementById('routesList');
+      rList.innerHTML = '';
+      (newData.evacuation_routes || []).forEach(r => {
+        rList.innerHTML += `<div class="list-item">🚗 <b>${r}</b></div>`;
+      });
+
+      const sList = document.getElementById('sheltersList');
+      sList.innerHTML = '';
+      (newData.shelters || []).forEach(s => {
+        sList.innerHTML += `<div class="list-item">🏠 <b>${s.name}</b> <i>(Cap: ${s.capacity})</i></div>`;
+      });
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    // Enter key triggers city lookup
+    document.getElementById('cityInput').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        lookupCity();
+      }
+    });
+
+    // Initialize map and chart on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      initHydroChart();
+    });
+  </script>
+</body>
+</html>

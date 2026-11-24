@@ -148,7 +148,7 @@ def test_city_feature_resolver():
 
     # Test arbitrary procedural city
     custom_res = CityFeatureResolver.resolve_city_features("Zanzibar")
-    assert custom_res["city"] == "Zanzibar"
+    assert "Zanzibar" in custom_res["city"]
     assert len(custom_res["hotspots"]) >= 2
     assert len(custom_res["shelters"]) >= 2
     assert -90 <= custom_res["center_lat"] <= 90

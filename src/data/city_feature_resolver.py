@@ -571,14 +571,19 @@ class CityFeatureResolver:
         """Queries OpenStreetMap Nominatim with strict 1.5s timeout; catches all network errors."""
         try:
             encoded = urllib.parse.quote(query.strip())
-            url = f"https://nominatim.openstreetmap.org/search?q={encoded}&format=json&limit=1&addressdetails=1"
+            url = f"https://nominatim.openstreetmap.org/search?q={encoded}&format=json&limit=1&addressdetails=1&accept-language=en"
             req = urllib.request.Request(url, headers={"User-Agent": "FloodAI-Autonomous-Monitor/1.0"})
             with urllib.request.urlopen(req, timeout=1.5) as response:
                 payload = json.loads(response.read().decode("utf-8"))
                 if payload and len(payload) > 0:
                     item = payload[0]
+                    addr = item.get("address", {})
+                    raw_name = addr.get("city") or addr.get("town") or addr.get("municipality") or item.get("name") or query.title()
+                    # Filter non-Latin script remnants to keep pure English names
+                    clean_name = re.sub(r'[\u0600-\u06FF\u0980-\u09FF\u4E00-\u9FFF]', '', raw_name).strip()
+                    final_name = clean_name if clean_name else query.title()
                     return {
-                        "name": item.get("name") or query.title(),
+                        "name": final_name,
                         "lat": float(item["lat"]),
                         "lon": float(item["lon"]),
                         "country": item.get("address", {}).get("country", "Global Territory"),

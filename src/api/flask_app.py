@@ -6,6 +6,7 @@ real-time precipitation (Open-Meteo, GPM IMERG, NEXRAD), live river streamgage t
 structural damage assessment (DARPA xBD), and real-time citizen triage (CrisisMMD, HumAID).
 """
 
+from datetime import datetime, timezone
 import sys
 from pathlib import Path
 from typing import Dict, Any, List
@@ -51,7 +52,8 @@ def compute_simulation_state(
 
     is_live_mode = (str(mode).lower() == "live")
 
-    # 1. Weather Ingestion (Live Open-Meteo & GPM IMERG vs Simulation)
+    # 1. Weather & Hydrology Ingestion (Live Country Adapters vs Simulation Fallback)
+    country_code = region_info.get("country_code", "")
     if is_live_mode:
         weather: WeatherTelemetry = RealtimeWeatherEngine.fetch_live_weather(
             city=city_name,
@@ -63,6 +65,9 @@ def compute_simulation_state(
             danger_m=danger_m,
             emergency_m=emergency_m,
             rain_rate_mm_h=weather.current_rain_mm_h,
+            lat=center_lat,
+            lon=center_lon,
+            country_code=country_code,
         )
         effective_stage = hydro.stage_m
         effective_rate = hydro.rate_of_rise_m_hr
@@ -74,14 +79,19 @@ def compute_simulation_state(
         weather = RealtimeWeatherEngine._generate_climatological_baseline(city_name, center_lat, center_lon)
         weather.current_rain_mm_h = round(sim_rate * 42.0, 1)
         weather.source = "Simulated Climatological Stress Test (Manual Controls)"
+        weather.origin = "simulated"
         hydro = RealtimeHydrologyEngine.fetch_live_hydrology(
             city=city_name,
             danger_m=danger_m,
             emergency_m=emergency_m,
             rain_rate_mm_h=weather.current_rain_mm_h,
+            lat=center_lat,
+            lon=center_lon,
+            country_code=country_code,
         )
         hydro.stage_m = sim_stage
         hydro.rate_of_rise_m_hr = sim_rate
+        hydro.origin = "simulated"
         effective_stage = sim_stage
         effective_rate = sim_rate
         effective_inundation = sim_inundation
@@ -195,7 +205,28 @@ def compute_simulation_state(
     t_p10 = [round(max(0.0, m - 0.25), 2) for m in t_median]
     t_p90 = [round(m + 0.35, 2) for m in t_median]
 
-    should_alarm = alert.level in [AlertSeverity.WARNING, AlertSeverity.EMERGENCY] or max_risk_prob >= 0.70
+    # Rule 4: Never sound the siren on simulated values.
+    # When the siren fires on a model threshold and not on an official danger level, say so on screen.
+    siren_notice = None
+    if not is_live_mode or hydro.origin == "simulated":
+        should_alarm = False
+    else:
+        reaches_official_danger = (
+            hydro.danger_threshold_m is not None and
+            not getattr(hydro, "is_model_threshold", False) and
+            effective_stage >= hydro.danger_threshold_m
+        )
+        if reaches_official_danger or alert.level == AlertSeverity.EMERGENCY:
+            should_alarm = True
+            siren_notice = "CRITICAL FLOOD ALARM ACTIVE: Observed stage has reached official agency danger level."
+        elif getattr(hydro, "is_model_threshold", False) and effective_stage >= (hydro.danger_threshold_m or 4.0):
+            should_alarm = True
+            siren_notice = "Siren active on model threshold, not an official danger level."
+        elif max_risk_prob >= 0.75:
+            should_alarm = True
+            siren_notice = "Siren active on model threshold, not an official danger level."
+        else:
+            should_alarm = False
 
     return {
         "city": city_name,
@@ -219,6 +250,7 @@ def compute_simulation_state(
         "max_risk_percent": int(max_risk_prob * 100),
         "severity_level": alert.level.value,
         "headline": alert.headline,
+        "siren_notice": siren_notice,
         "english_advisory": alert.english_advisory,
         "local_advisory": region_info.get("local_advisory", alert.local_advisory),
         "evacuation_routes": region_info.get("evacuation_routes", alert.evacuation_routes),
@@ -235,6 +267,9 @@ def compute_simulation_state(
             "condition": weather.weather_condition,
             "source": weather.source,
             "is_live": weather.is_live,
+            "origin": getattr(weather, "origin", "observed"),
+            "source_id": getattr(weather, "source_id", "openmeteo_forecast"),
+            "time_utc": getattr(weather, "time_utc", datetime.now(timezone.utc).isoformat()),
         },
         "hydrology": {
             "station_name": hydro.station_name,
@@ -245,6 +280,13 @@ def compute_simulation_state(
             "stage_status": hydro.stage_status,
             "source": hydro.source,
             "is_live": hydro.is_live,
+            "origin": getattr(hydro, "origin", "observed"),
+            "source_id": getattr(hydro, "source_id", "usgs_latest"),
+            "time_utc": getattr(hydro, "time_utc", datetime.now(timezone.utc).isoformat()),
+            "threshold_origin": getattr(hydro, "threshold_origin", "official"),
+            "threshold_reason": getattr(hydro, "threshold_reason", None),
+            "is_model_threshold": getattr(hydro, "is_model_threshold", False),
+            "official_thresholds": getattr(hydro, "official_thresholds", {}),
         },
         "exposure_summary": {
             "total_exposed_population": f"{total_exposed_population:,}",

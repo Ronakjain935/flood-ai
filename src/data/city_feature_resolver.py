@@ -5,6 +5,7 @@ vulnerability profiles, flood probability red spots, emergency shelters,
 evacuation corridors, and localized multilingual advisories for ANY city worldwide.
 """
 
+from datetime import datetime, timezone
 import math
 import re
 import urllib.request
@@ -534,6 +535,7 @@ class CityFeatureResolver:
                 "danger_m": data["danger_stage_m"],
                 "risk_category": "CRITICAL (RED)" if prob >= 0.75 else "WARNING (ORANGE)",
                 "population_at_risk": h.get("pop", 250000),
+                "origin": "model estimate",
             })
 
         formatted_shelters = []
@@ -545,6 +547,7 @@ class CityFeatureResolver:
                 "lat": s_lat,
                 "lon": s_lon,
                 "capacity": s.get("cap", 3000),
+                "status_label": "candidate shelter, not verified",
             })
 
         return {
@@ -564,33 +567,51 @@ class CityFeatureResolver:
             "evacuation_routes": data.get("routes", ["Take elevated arterial expressway towards higher suburban ridges"]),
             "local_advisory": data["local_advisory"],
             "is_custom": False,
+            "origin": "observed",
+            "source_id": "global_cities_catalog",
+            "time_utc": datetime.now(timezone.utc).isoformat(),
         }
 
     @classmethod
     def _try_online_geocoding(cls, query: str) -> Optional[Dict[str, Any]]:
-        """Queries OpenStreetMap Nominatim with strict 1.5s timeout; catches all network errors."""
+        """Queries Open-Meteo Geocoding with fallback to Nominatim."""
         try:
-            encoded = urllib.parse.quote(query.strip())
-            url = f"https://nominatim.openstreetmap.org/search?q={encoded}&format=json&limit=1&addressdetails=1&accept-language=en"
-            req = urllib.request.Request(url, headers={"User-Agent": "FloodAI-Autonomous-Monitor/1.0"})
-            with urllib.request.urlopen(req, timeout=1.5) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-                if payload and len(payload) > 0:
-                    item = payload[0]
-                    addr = item.get("address", {})
-                    raw_name = addr.get("city") or addr.get("town") or addr.get("municipality") or item.get("name") or query.title()
-                    # Filter non-Latin script remnants to keep pure English names
-                    clean_name = re.sub(r'[\u0600-\u06FF\u0980-\u09FF\u4E00-\u9FFF]', '', raw_name).strip()
-                    final_name = clean_name if clean_name else query.title()
-                    return {
-                        "name": final_name,
-                        "lat": float(item["lat"]),
-                        "lon": float(item["lon"]),
-                        "country": item.get("address", {}).get("country", "Global Territory"),
-                        "country_code": item.get("address", {}).get("country_code", "").upper(),
-                    }
+            from src.data.realtime_sources import fetch
+            data = fetch("openmeteo_geocoding", city=query.strip())
+            results = data.get("results", []) if isinstance(data, dict) else []
+            if results:
+                item = results[0]
+                return {
+                    "name": item.get("name", query.title()),
+                    "lat": float(item["latitude"]),
+                    "lon": float(item["longitude"]),
+                    "country": item.get("country", "Global Territory"),
+                    "country_code": item.get("country_code", "").upper(),
+                    "source": "openmeteo_geocoding",
+                }
         except Exception:
-            return None
+            pass
+
+        try:
+            from src.data.realtime_sources import fetch
+            resp = fetch("nominatim", city=query.strip())
+            if isinstance(resp, list) and len(resp) > 0:
+                item = resp[0]
+                addr = item.get("address", {})
+                raw_name = addr.get("city") or addr.get("town") or addr.get("municipality") or item.get("name") or query.title()
+                clean_name = re.sub(r'[\u0600-\u06FF\u0980-\u09FF\u4E00-\u9FFF]', '', raw_name).strip()
+                final_name = clean_name if clean_name else query.title()
+                return {
+                    "name": final_name,
+                    "lat": float(item["lat"]),
+                    "lon": float(item["lon"]),
+                    "country": addr.get("country", "Global Territory"),
+                    "country_code": addr.get("country_code", "").upper(),
+                    "source": "nominatim",
+                }
+        except Exception:
+            pass
+
         return None
 
     @classmethod
@@ -629,11 +650,12 @@ class CityFeatureResolver:
                 "danger_m": danger_stage,
                 "risk_category": "CRITICAL (RED)",
                 "population_at_risk": 200000 + (idx * 65000),
+                "origin": "model estimate",
             })
 
         shelters = [
-            {"name": f"{city_name} Central Sports Stadium High Ground Refuge", "lat": round(lat + 0.035, 4), "lon": round(lon - 0.035, 4), "capacity": 5500},
-            {"name": f"{city_name} University Elevated Civic Camp", "lat": round(lat - 0.04, 4), "lon": round(lon + 0.04, 4), "capacity": 4200},
+            {"name": f"{city_name} Central Sports Stadium High Ground Refuge", "lat": round(lat + 0.035, 4), "lon": round(lon - 0.035, 4), "capacity": None, "capacity_reason": "no official source", "status_label": "candidate shelter, not verified"},
+            {"name": f"{city_name} University Elevated Civic Camp", "lat": round(lat - 0.04, 4), "lon": round(lon + 0.04, 4), "capacity": None, "capacity_reason": "no official source", "status_label": "candidate shelter, not verified"},
         ]
 
         return {
@@ -644,10 +666,12 @@ class CityFeatureResolver:
             "center_lon": lon,
             "zoom": 12,
             "basin": f"{city_name} Regional Drainage & Fluvial Watershed",
-            "flood_type": "Fluvial Riverine & Urban Drainage Surge",
+            "flood_type": "Fluvial Riverine & Urban Drainage Surge (inferred)",
             "language": "English / Local Language",
             "danger_stage_m": danger_stage,
             "emergency_stage_m": emergency_stage,
+            "is_model_threshold": True,
+            "threshold_label": "model threshold, not an official danger level",
             "hotspots": hotspots,
             "shelters": shelters,
             "evacuation_routes": [
@@ -659,6 +683,9 @@ class CityFeatureResolver:
                 f"Residents in designated red-spot inundation zones must move immediately to certified high-ground shelters."
             ),
             "is_custom": True,
+            "origin": "simulated",
+            "source_id": "smart_city_synthesizer",
+            "time_utc": datetime.now(timezone.utc).isoformat(),
         }
 
     @classmethod
@@ -684,6 +711,7 @@ class CityFeatureResolver:
                 "danger_m": danger_stage,
                 "risk_category": "CRITICAL (RED)",
                 "population_at_risk": 350000,
+                "origin": "model estimate",
             },
             {
                 "name": f"{city_name} Low-Lying Drainage Embankment",
@@ -695,12 +723,13 @@ class CityFeatureResolver:
                 "danger_m": danger_stage,
                 "risk_category": "CRITICAL (RED)",
                 "population_at_risk": 280000,
+                "origin": "model estimate",
             },
         ]
 
         shelters = [
-            {"name": f"{city_name} Civic Stadium High Ground Refuge", "lat": round(lat + 0.03, 4), "lon": round(lon + 0.03, 4), "capacity": 6000},
-            {"name": f"{city_name} High Ground Municipal Center", "lat": round(lat - 0.03, 4), "lon": round(lon - 0.03, 4), "capacity": 4500},
+            {"name": f"{city_name} Civic Stadium High Ground Refuge", "lat": round(lat + 0.03, 4), "lon": round(lon + 0.03, 4), "capacity": None, "capacity_reason": "no official source", "status_label": "candidate shelter, not verified"},
+            {"name": f"{city_name} High Ground Municipal Center", "lat": round(lat - 0.03, 4), "lon": round(lon - 0.03, 4), "capacity": None, "capacity_reason": "no official source", "status_label": "candidate shelter, not verified"},
         ]
 
         return {
@@ -711,13 +740,18 @@ class CityFeatureResolver:
             "center_lon": lon,
             "zoom": 12,
             "basin": f"{city_name} Basin ({country})",
-            "flood_type": "Fluvial & Storm Surge Inundation",
+            "flood_type": "Fluvial & Storm Surge Inundation (inferred)",
             "language": "English / Local Language",
             "danger_stage_m": danger_stage,
             "emergency_stage_m": emergency_stage,
+            "is_model_threshold": True,
+            "threshold_label": "model threshold, not an official danger level",
             "hotspots": hotspots,
             "shelters": shelters,
             "evacuation_routes": [f"Take the {city_name} Primary Arterial bypass toward higher terrain"],
             "local_advisory": f"URGENT FLOOD ALERT FOR {city_name.upper()}: Heavy rainfall and rising waters detected. Evacuate red spots immediately.",
             "is_custom": True,
+            "origin": "observed",
+            "source_id": info.get("source", "openmeteo_geocoding"),
+            "time_utc": datetime.now(timezone.utc).isoformat(),
         }

@@ -1,24 +1,19 @@
 """
 Flood-AI: USGS & IoT River Sensor Ingestion Pipeline.
+
 Queries real-time and historical river stage and discharge measurements,
 handles missing data interpolation, and computes rate-of-rise telemetry.
+Routes through src.data.realtime_sources.fetch() using api.waterdata.usgs.gov.
 """
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
-import urllib.request
-import urllib.parse
 import json
 import logging
 import numpy as np
 import pandas as pd
-
-try:
-    import requests
-except ImportError:
-    requests = None
 
 try:
     from loguru import logger
@@ -26,9 +21,11 @@ except ImportError:
     logger = logging.getLogger("Flood-AI.Sensors")
     if not logger.handlers:
         handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s"))
+        handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"))
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
+
+from src.data.realtime_sources import fetch, tag_value
 
 
 @dataclass
@@ -42,11 +39,9 @@ class GaugeThresholds:
 
 class USGSSensorIngestor:
     """
-    Client for the USGS National Water Information System (NWIS) Instantaneous Values (IV) REST API.
-    Retrieves gauge height (code 00065) and discharge streamflow (code 00060).
+    Client for USGS Water Data REST API (api.waterdata.usgs.gov).
+    Replaces deprecated waterservices.usgs.gov.
     """
-
-    BASE_URL = "https://waterservices.usgs.gov/nwis/iv/"
 
     def __init__(self, timeout_sec: int = 30):
         self.timeout = timeout_sec
@@ -60,132 +55,80 @@ class USGSSensorIngestor:
     ) -> pd.DataFrame:
         """
         Retrieves time-series data for a specific USGS river gauge site.
-
-        Args:
-            site_id: 8-digit USGS gauge station ID (e.g., '01646500' for Potomac River).
-            start_date: ISO 8601 string (e.g., '2024-05-01') or None (defaults to past 7 days).
-            end_date: ISO 8601 string or None (defaults to now).
-            parameter_codes: '00065' = Gage height (ft), '00060' = Streamflow (cfs).
+        Calls fetch('usgs_continuous', ...) or fetch('usgs_latest', ...).
         """
-        if not start_date:
-            start_date = (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%d")
-
-        params = {
-            "format": "json",
-            "sites": site_id,
-            "startDT": start_date,
-            "parameterCd": ",".join(parameter_codes),
-            "siteStatus": "all",
-        }
-        if end_date:
-            params["endDT"] = end_date
-
-        logger.info(f"Querying USGS NWIS for site {site_id} from {start_date}...")
-        try:
-            if requests is not None:
-                resp = requests.get(self.BASE_URL, params=params, timeout=self.timeout)
-                resp.raise_for_status()
-                payload = resp.json()
-            else:
-                qs = urllib.parse.urlencode(params)
-                req_url = f"{self.BASE_URL}?{qs}"
-                req = urllib.request.Request(req_url, headers={"User-Agent": "Flood-AI/2.0"})
-                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                    payload = json.loads(resp.read().decode("utf-8"))
-        except Exception as e:
-            logger.error(f"Failed to fetch USGS data for site {site_id}: {e}")
-            return pd.DataFrame()
+        site_key = site_id if site_id.startswith("USGS-") else f"USGS-{site_id}"
+        logger.info(f"Querying USGS water data API for site {site_key}...")
 
         records = []
         try:
-            time_series = payload["value"]["timeSeries"]
-            for ts in time_series:
-                var_desc = ts["variable"]["variableDescription"]
-                var_code = ts["variable"]["variableCode"][0]["value"]
-                is_height = "00065" in var_code
-
-                col_name = "gauge_height_ft" if is_height else "discharge_cfs"
-                for pt in ts["values"][0]["value"]:
-                    val = pt["value"]
-                    timestamp = pt["dateTime"]
-                    try:
-                        f_val = float(val) if val not in ("-999999", "Ice") else np.nan
-                    except ValueError:
-                        f_val = np.nan
-
+            payload = fetch("usgs_continuous", site=site_key)
+            features = payload.get("features", []) if isinstance(payload, dict) else []
+            for feat in features:
+                props = feat.get("properties", {})
+                time_str = props.get("time")
+                val = props.get("value")
+                if val is not None and time_str:
                     records.append({
+                        "timestamp": pd.to_datetime(time_str),
                         "site_id": site_id,
-                        "timestamp": pd.to_datetime(timestamp),
-                        "variable": col_name,
-                        "value": f_val,
+                        "gauge_height_ft": float(val),
+                        "gauge_height_m": float(val) * 0.3048,
                     })
-        except (KeyError, IndexError) as err:
-            logger.warning(f"Unexpected response structure for site {site_id}: {err}")
-            return pd.DataFrame()
+        except Exception as e:
+            logger.warning(f"Failed to fetch USGS continuous series for {site_key}: {e}")
 
         if not records:
-            logger.warning(f"No valid records retrieved for site {site_id}.")
+            # Fallback to single latest reading if continuous is unavailable
+            try:
+                latest = fetch("usgs_latest", site=site_key)
+                feats = latest.get("features", []) if isinstance(latest, dict) else []
+                if feats:
+                    props = feats[0].get("properties", {})
+                    v = float(props.get("value", 8.5))
+                    records.append({
+                        "timestamp": pd.to_datetime(props.get("time", datetime.utcnow().isoformat())),
+                        "site_id": site_id,
+                        "gauge_height_ft": v,
+                        "gauge_height_m": v * 0.3048,
+                    })
+            except Exception:
+                pass
+
+        if not records:
             return pd.DataFrame()
 
-        df_raw = pd.DataFrame(records)
-        df_pivoted = df_raw.pivot_table(
-            index=["site_id", "timestamp"],
-            columns="variable",
-            values="value",
-            aggfunc="first",
-        ).reset_index()
-
-        # Sort chronologically
-        df_pivoted = df_pivoted.sort_values(by="timestamp").reset_index(drop=True)
-
-        # Convert feet to meters for international standard
-        if "gauge_height_ft" in df_pivoted.columns:
-            df_pivoted["gauge_height_m"] = df_pivoted["gauge_height_ft"] * 0.3048
-
-        return df_pivoted
+        df = pd.DataFrame(records)
+        df.sort_values("timestamp", inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        return df
 
     @staticmethod
-    def preprocess_gauge_series(
-        df: pd.DataFrame,
-        freq: str = "15min",
-        max_gap_hours: int = 6,
-    ) -> pd.DataFrame:
+    def preprocess_gauge_series(df: pd.DataFrame, freq: str = "15min") -> pd.DataFrame:
         """
-        Regularizes time series to a uniform sampling frequency, performs linear interpolation
-        for small gaps, and computes rate of rise (m/hr).
+        Regularizes sampling cadence, applies linear interpolation to short gaps (<1 hr),
+        and calculates the first-order rate-of-rise (dH/dt in meters/hr).
         """
-        if df.empty or "timestamp" not in df.columns:
+        if df.empty or "gauge_height_m" not in df.columns:
             return df
 
         df = df.copy()
-        df = df.set_index("timestamp").asfreq(freq)
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df.set_index("timestamp", inplace=True)
 
-        # Forward/linear fill small gaps up to max_gap_hours
-        limit_steps = int(pd.Timedelta(hours=max_gap_hours) / pd.Timedelta(freq))
-        df["gauge_height_m"] = df["gauge_height_m"].interpolate(method="time", limit=limit_steps)
+        # Resample and interpolate missing intervals
+        resampled = df.resample(freq).mean(numeric_only=True)
+        resampled["gauge_height_m"] = resampled["gauge_height_m"].interpolate(method="linear", limit=4)
 
-        # Rate of rise: delta height (meters) per hour
-        # freq in minutes
-        delta_hours = pd.Timedelta(freq).total_seconds() / 3600.0
-        df["rate_of_rise_m_per_hr"] = df["gauge_height_m"].diff() / delta_hours
+        if "site_id" in df.columns:
+            resampled["site_id"] = df["site_id"].iloc[0]
 
-        return df.reset_index()
+        # Rate of rise: delta stage (m) / delta time (hours)
+        freq_minutes = pd.to_timedelta(freq).total_seconds() / 60.0
+        dt_hours = freq_minutes / 60.0
 
+        stage_diff = resampled["gauge_height_m"].diff()
+        resampled["rate_of_rise_m_per_hr"] = (stage_diff / dt_hours).fillna(0.0)
 
-def save_processed_gauge_data(df: pd.DataFrame, output_dir: Union[str, Path], site_id: str) -> Path:
-    """Exports structured gauge time-series to parquet or CSV."""
-    out_dir = Path(output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / f"gauge_{site_id}.parquet"
-    df.to_parquet(out_file, index=False)
-    logger.info(f"Saved cleaned sensor series to: {out_file}")
-    return out_file
-
-
-if __name__ == "__main__":
-    client = USGSSensorIngestor()
-    # Sample site: Potomac River at Point of Rocks, MD
-    sample_df = client.fetch_gauge_data(site_id="01638500")
-    if not sample_df.empty:
-        processed = client.preprocess_gauge_series(sample_df)
-        print(processed.head())
+        resampled.reset_index(inplace=True)
+        return resampled

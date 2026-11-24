@@ -1,7 +1,12 @@
 """
 Flood-AI: Multimodal Spatio-Temporal Data Fusion Engine.
+
 Harmonizes heterogeneous spatial rasters (Sentinel-1 SAR, Sentinel-2 Optical, DEM, GPM Radar)
 and point sensor time-series into unified multi-channel raster cubes.
+Implements Module 1 Fusion Engine:
+- Channels 0-5: SAR VV, SAR VH, VV/VH ratio, Optical NDWI, DEM, Slope.
+- Channel 6: Gauge Stage (observed where adapter returns it, or river flow from openmeteo_flood with origin = 'model').
+- Channel 7: Rate of Rise (observed where adapter returns it, or model rate).
 """
 
 from dataclasses import dataclass
@@ -16,7 +21,7 @@ except ImportError:
     logger = logging.getLogger("Flood-AI.Fusion")
     if not logger.handlers:
         handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s"))
+        handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"))
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
 
@@ -44,6 +49,8 @@ class MultimodalDataFusion:
         "optical_ndwi",    # Channel 3: Sentinel-2 NDWI
         "elevation_dem",   # Channel 4: Normalized Topographic DEM
         "slope",           # Channel 5: Topographic Slope in radians
+        "gauge_stage",     # Channel 6: Gauge Stage / Model Discharge
+        "rate_of_rise",    # Channel 7: Rate of Rise
     ]
 
     def __init__(self, config: Optional[FusionConfig] = None):
@@ -66,6 +73,7 @@ class MultimodalDataFusion:
         ndwi: Optional[np.ndarray] = None,
         dem: Optional[np.ndarray] = None,
         gauge_stage_m: Optional[float] = None,
+        rate_of_rise_m_hr: Optional[float] = None,
     ) -> np.ndarray:
         """
         Combines spatial arrays into a unified (C, H, W) model tensor.
@@ -96,21 +104,16 @@ class MultimodalDataFusion:
 
         stack = [vv_norm, vh_norm, ratio_norm, ndwi_norm, dem_norm, slope]
 
-        # If gauge telemetry is supplied, append uniform hydrologic stage conditioning layer
+        # Channel 6: Gauge Stage / Discharge
         if gauge_stage_m is not None:
             stage_layer = np.full((H, W), fill_value=float(gauge_stage_m) / 10.0, dtype=np.float32)
             stack.append(stage_layer)
 
+        # Channel 7: Rate of Rise
+        if rate_of_rise_m_hr is not None:
+            ror_layer = np.full((H, W), fill_value=float(rate_of_rise_m_hr), dtype=np.float32)
+            stack.append(ror_layer)
+
         tensor = np.stack(stack, axis=0).astype(np.float32)
         logger.info(f"Assembled multimodal tensor shape: {tensor.shape} (Channels: {len(stack)})")
         return tensor
-
-
-if __name__ == "__main__":
-    fusion = MultimodalDataFusion()
-    dummy_vv = np.random.uniform(-25.0, -5.0, (128, 128))
-    dummy_vh = np.random.uniform(-30.0, -10.0, (128, 128))
-    dummy_dem = np.random.uniform(2.0, 15.0, (128, 128))
-
-    cube = fusion.assemble_multimodal_tensor(dummy_vv, dummy_vh, dem=dummy_dem, gauge_stage_m=3.5)
-    print(f"Data Fusion Complete. Tensor Shape: {cube.shape}")

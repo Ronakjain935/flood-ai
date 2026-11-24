@@ -4,15 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flood-AI: Real-Time Early Warning & Siren Alarm Command</title>
+  <title>Flood-AI: Real-Time Early Warning & Siren Command</title>
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22><text y=%2226%22 font-size=%2228%22>🌊</text></svg>">
 
-  <!-- Inter & Plus Jakarta Sans Fonts -->
+  <!-- Inter & Plus Jakarta Sans & JetBrains Mono Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
 
   <!-- Leaflet CSS -->
@@ -25,10 +25,11 @@
   <style>
     :root {
       --bg-base: #060913;
-      --bg-surface: rgba(15, 23, 42, 0.78);
+      --bg-surface: rgba(15, 23, 42, 0.72);
       --bg-surface-solid: #0f172a;
+      --bg-card: rgba(18, 28, 51, 0.65);
       --border-subtle: rgba(148, 163, 184, 0.12);
-      --border-focus: rgba(56, 189, 248, 0.4);
+      --border-focus: rgba(56, 189, 248, 0.45);
       --accent-cyan: #38bdf8;
       --accent-blue: #2563eb;
       --danger: #ef4444;
@@ -57,9 +58,10 @@
       font-family: var(--font-sans);
       min-height: 100vh;
       overflow-x: hidden;
+      line-height: 1.5;
       background-image:
-        radial-gradient(circle at 15% 15%, rgba(37, 99, 235, 0.08) 0%, transparent 45%),
-        radial-gradient(circle at 85% 85%, rgba(239, 68, 68, 0.05) 0%, transparent 45%);
+        radial-gradient(circle at 10% 10%, rgba(37, 99, 235, 0.09) 0%, transparent 45%),
+        radial-gradient(circle at 90% 90%, rgba(239, 68, 68, 0.06) 0%, transparent 50%);
     }
 
     /* Ambient Alarm Flash Overlay */
@@ -76,7 +78,7 @@
       }
     }
 
-    /* ================= TOPBAR ================= */
+    /* ================= TOPBAR (STREAMLINED HEADER) ================= */
     .topbar {
       position: sticky;
       top: 0;
@@ -84,10 +86,10 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      padding: 12px 24px;
+      gap: 20px;
+      padding: 14px 28px;
       background: rgba(6, 9, 19, 0.88);
-      backdrop-filter: blur(14px);
+      backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border-subtle);
     }
 
@@ -95,57 +97,92 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      text-decoration: none;
+      flex-shrink: 0;
     }
 
     .brand-logo {
-      width: 38px;
-      height: 38px;
+      width: 42px;
+      height: 42px;
       border-radius: var(--radius-sm);
       background: linear-gradient(135deg, #0284c7, #2563eb);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 0 16px rgba(14, 165, 233, 0.35);
+      font-size: 22px;
+      box-shadow: 0 0 18px rgba(14, 165, 233, 0.35);
+    }
+
+    .brand-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .brand-title {
-      font-size: 17px;
+      font-size: 19px;
       font-weight: 800;
-      letter-spacing: -0.3px;
+      letter-spacing: -0.4px;
       background: linear-gradient(90deg, #f8fafc, #38bdf8);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
+    .brand-pill {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
     .brand-subtitle {
       font-size: 11px;
       color: var(--text-muted);
       font-weight: 500;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
-    /* Search & Selector Hub */
+    /* Central Search & Preset Cluster */
     .command-search {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex: 1;
-      max-width: 580px;
+      max-width: 620px;
     }
 
     .input-wrap {
       position: relative;
       flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      color: var(--text-muted);
+      font-size: 14px;
+      pointer-events: none;
     }
 
     .input-field {
       width: 100%;
-      height: 38px;
-      padding: 0 14px;
-      background: rgba(15, 23, 42, 0.9);
+      height: 40px;
+      padding: 0 14px 0 36px;
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm);
       color: var(--text-primary);
@@ -158,12 +195,13 @@
     .input-field:focus {
       border-color: var(--accent-cyan);
       box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+      background: rgba(15, 23, 42, 0.95);
     }
 
     .select-field {
-      height: 38px;
+      height: 40px;
       padding: 0 12px;
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm);
       color: var(--text-secondary);
@@ -171,6 +209,7 @@
       font-size: 13px;
       outline: none;
       cursor: pointer;
+      transition: border-color 0.2s ease;
     }
 
     .select-field:focus {
@@ -178,7 +217,7 @@
     }
 
     .btn {
-      height: 38px;
+      height: 40px;
       padding: 0 16px;
       border-radius: var(--radius-sm);
       font-family: var(--font-sans);
@@ -205,24 +244,25 @@
     }
 
     .btn-danger {
-      background: rgba(239, 68, 68, 0.18);
+      background: rgba(239, 68, 68, 0.16);
       color: #f87171;
-      border-color: rgba(239, 68, 68, 0.4);
+      border-color: rgba(239, 68, 68, 0.35);
     }
 
     .btn-danger:hover {
       background: #ef4444;
       color: #fff;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
     }
 
     .btn-ghost {
-      background: rgba(30, 41, 59, 0.6);
+      background: rgba(30, 41, 59, 0.55);
       color: var(--text-secondary);
       border-color: var(--border-subtle);
     }
 
     .btn-ghost:hover {
-      background: rgba(51, 65, 85, 0.8);
+      background: rgba(51, 65, 85, 0.75);
       color: var(--text-primary);
     }
 
@@ -230,22 +270,23 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-shrink: 0;
     }
 
-    /* Live Feed vs Simulator Switch */
+    /* Mode Switch Segmented Control */
     .mode-switch {
       display: inline-flex;
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.85);
       padding: 3px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-subtle);
-      gap: 3px;
+      gap: 2px;
     }
 
     .mode-btn {
       padding: 6px 12px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
       border-radius: 6px;
       border: none;
       cursor: pointer;
@@ -260,7 +301,7 @@
     .mode-btn.active {
       background: #0284c7;
       color: #fff;
-      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
     }
 
     .live-dot {
@@ -279,12 +320,12 @@
 
     /* ================= MAIN WORKSPACE ================= */
     .workspace {
-      max-width: 1560px;
+      max-width: 1600px;
       margin: 0 auto;
-      padding: 20px 24px;
+      padding: 24px 28px 40px;
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 22px;
     }
 
     /* Emergency Siren Banner */
@@ -292,10 +333,10 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      padding: 14px 20px;
+      gap: 18px;
+      padding: 16px 24px;
       border-radius: var(--radius-md);
-      background: linear-gradient(90deg, rgba(127, 29, 29, 0.94), rgba(185, 28, 28, 0.88));
+      background: linear-gradient(90deg, rgba(127, 29, 29, 0.95), rgba(185, 28, 28, 0.9));
       border: 1px solid #f87171;
       animation: emergency-border 1.4s infinite ease-in-out;
       flex-wrap: wrap;
@@ -308,11 +349,11 @@
     .alarm-info {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 16px;
     }
 
     .alarm-icon {
-      font-size: 28px;
+      font-size: 32px;
       animation: shake 0.6s infinite alternate;
     }
 
@@ -326,53 +367,48 @@
       50% { border-color: #ef4444; box-shadow: 0 0 32px rgba(239, 68, 68, 0.6); }
     }
 
-    /* City Intelligence Strip */
-    .city-strip {
+    /* ================= UNIFIED EXECUTIVE STATUS BANNER ================= */
+    .executive-banner {
       background: var(--bg-surface);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
-      padding: 18px 22px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .city-strip-top {
-      display: flex;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: minmax(360px, 1.1fr) minmax(520px, 1.9fr);
+      gap: 24px;
       align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      flex-wrap: wrap;
     }
 
-    .city-identity {
+    /* Left: City Overview */
+    .city-identity-zone {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 10px;
     }
 
     .city-headline {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
     .city-flag {
-      font-size: 24px;
+      font-size: 30px;
+      line-height: 1;
     }
 
     .city-name-text {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 800;
       color: #fff;
-      letter-spacing: -0.4px;
+      letter-spacing: -0.5px;
     }
 
     .city-country-text {
-      font-size: 14px;
-      color: var(--text-muted);
+      font-size: 15px;
+      color: var(--text-secondary);
       font-weight: 600;
     }
 
@@ -380,11 +416,11 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 10px;
+      padding: 4px 12px;
       border-radius: 999px;
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.5px;
       text-transform: uppercase;
     }
 
@@ -406,34 +442,35 @@
       border: 1px solid rgba(16, 185, 129, 0.5);
     }
 
-    .city-meta {
+    .city-meta-row {
       display: flex;
       align-items: center;
-      gap: 18px;
-      font-size: 13px;
+      gap: 16px;
+      font-size: 12px;
       color: var(--text-secondary);
       flex-wrap: wrap;
     }
 
-    .city-meta span b {
+    .city-meta-row span b {
       color: var(--text-primary);
     }
 
-    .city-pills {
+    .city-pills-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
+      margin-top: 2px;
     }
 
     .meta-pill {
-      background: rgba(30, 41, 59, 0.6);
+      background: rgba(30, 41, 59, 0.65);
       border: 1px solid var(--border-subtle);
       border-radius: 999px;
       padding: 4px 12px;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-secondary);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
     }
@@ -442,46 +479,82 @@
       color: var(--text-primary);
     }
 
-    /* Live Telemetry Sensor Bar */
-    .telemetry-bar {
+    /* Right: 4 Hero Telemetry Cards */
+    .telemetry-hero-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 10px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(148, 163, 184, 0.08);
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
     }
 
-    .telemetry-item {
-      background: rgba(6, 9, 19, 0.5);
-      border: 1px solid rgba(148, 163, 184, 0.09);
-      border-radius: var(--radius-sm);
-      padding: 8px 12px;
+    .hero-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
     }
 
-    .telemetry-label {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
+    .hero-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-accent, var(--accent-cyan));
+    }
+
+    .hero-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 6px;
     }
 
-    .telemetry-val {
-      font-family: var(--font-mono);
-      font-size: 13px;
+    .hero-label {
+      font-size: 11px;
       font-weight: 700;
-      color: var(--accent-cyan);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
-    .telemetry-source {
-      font-size: 10px;
-      color: var(--text-muted);
+    .hero-tag {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      letter-spacing: 0.4px;
+    }
+
+    .hero-value {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+      margin-top: 2px;
+    }
+
+    .hero-subtitle {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.35;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -490,8 +563,8 @@
     /* ================= BENTO GRID ================= */
     .bento-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 380px;
-      gap: 20px;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 22px;
       align-items: start;
     }
 
@@ -499,30 +572,30 @@
     .rail-col {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 22px;
     }
 
     .panel {
       background: var(--bg-surface);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
-      padding: 18px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
     }
 
     .panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
       flex-wrap: wrap;
     }
 
     .panel-title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 700;
       color: #fff;
       display: flex;
@@ -541,11 +614,12 @@
       border-radius: var(--radius-md);
       overflow: hidden;
       border: 1px solid var(--border-subtle);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
     }
 
     #floodMap {
       width: 100%;
-      height: 500px;
+      height: 520px;
       background-color: #0b1120;
     }
 
@@ -555,20 +629,21 @@
 
     .map-legend-overlay {
       position: absolute;
-      bottom: 14px;
-      left: 14px;
+      bottom: 16px;
+      left: 16px;
       z-index: 500;
       display: flex;
-      gap: 12px;
+      gap: 14px;
       flex-wrap: wrap;
-      background: rgba(6, 9, 19, 0.88);
-      backdrop-filter: blur(10px);
+      background: rgba(6, 9, 19, 0.9);
+      backdrop-filter: blur(12px);
       border: 1px solid var(--border-subtle);
-      padding: 8px 14px;
+      padding: 8px 16px;
       border-radius: 999px;
       font-size: 11px;
       font-weight: 600;
       color: var(--text-primary);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
 
     .legend-item {
@@ -596,81 +671,84 @@
       color: #94a3b8 !important;
     }
 
-    /* Right Rail: KPI Grid */
-    .kpi-grid {
+    /* ================= RIGHT RAIL (KPIs, OVERRIDES & SIREN) ================= */
+    .threat-kpi-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
 
-    .kpi-card {
-      background: rgba(15, 23, 42, 0.85);
+    .threat-card {
+      background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
-      padding: 14px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       position: relative;
       overflow: hidden;
     }
 
-    .kpi-card::before {
+    .threat-card::before {
       content: "";
       position: absolute;
       top: 0;
       left: 0;
-      width: 3px;
-      height: 100%;
-      background: var(--kpi-accent, var(--accent-cyan));
+      bottom: 0;
+      width: 4px;
+      background: var(--card-accent, var(--accent-cyan));
     }
 
-    .kpi-card.full-span {
+    .threat-card.full-span {
       grid-column: span 2;
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
+      padding: 16px 18px;
     }
 
-    .kpi-label {
+    .threat-label {
       font-size: 11px;
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    .kpi-value {
+    .threat-value {
       font-family: var(--font-mono);
       font-size: 22px;
       font-weight: 700;
-      color: var(--text-primary);
+      color: #fff;
       letter-spacing: -0.5px;
     }
 
-    .kpi-sub {
+    .threat-sub {
       font-size: 11px;
       color: var(--accent-cyan);
       font-weight: 500;
     }
 
-    /* Sliders */
+    /* Simulator Sliders */
     .slider-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
 
     .slider-header {
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-secondary);
+      font-weight: 500;
     }
 
     .slider-header b {
       font-family: var(--font-mono);
       color: var(--accent-cyan);
+      font-weight: 700;
     }
 
     input[type=range] {
@@ -681,13 +759,14 @@
       background: #1e293b;
       border-radius: 999px;
       outline: none;
+      cursor: pointer;
     }
 
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       background: var(--accent-cyan);
       cursor: pointer;
@@ -696,16 +775,18 @@
     }
 
     input[type=range]::-webkit-slider-thumb:hover {
-      transform: scale(1.18);
+      transform: scale(1.2);
     }
 
-    /* Siren Control Box */
-    .siren-box {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    .simulator-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      padding-top: 4px;
+      border-top: 1px solid rgba(148, 163, 184, 0.08);
     }
 
+    /* Siren Box */
     .toggle-row {
       display: flex;
       align-items: center;
@@ -713,26 +794,31 @@
       font-size: 13px;
       color: var(--text-secondary);
       cursor: pointer;
-      padding: 10px 12px;
+      padding: 12px 14px;
       background: rgba(6, 9, 19, 0.45);
       border-radius: var(--radius-sm);
-      border: 1px solid rgba(148, 163, 184, 0.08);
+      border: 1px solid rgba(148, 163, 184, 0.09);
+      transition: background 0.15s;
+    }
+
+    .toggle-row:hover {
+      background: rgba(6, 9, 19, 0.65);
     }
 
     .toggle-row input {
       accent-color: var(--danger);
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       cursor: pointer;
     }
 
     /* ================= TABS & DATA DOCK ================= */
     .tabs-bar {
       display: inline-flex;
-      gap: 4px;
-      background: rgba(6, 9, 19, 0.65);
-      padding: 4px;
-      border-radius: 10px;
+      gap: 6px;
+      background: rgba(6, 9, 19, 0.7);
+      padding: 5px;
+      border-radius: 12px;
       border: 1px solid var(--border-subtle);
       width: fit-content;
       flex-wrap: wrap;
@@ -743,22 +829,26 @@
       background: transparent;
       color: var(--text-secondary);
       border: none;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 8px 13px;
-      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .tab-btn:hover {
       color: var(--text-primary);
+      background: rgba(30, 41, 59, 0.4);
     }
 
     .tab-btn.active {
       background: rgba(30, 41, 59, 0.95);
       color: #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
     }
 
     .tab-content {
@@ -789,14 +879,14 @@
     }
 
     th, td {
-      padding: 11px 14px;
+      padding: 13px 16px;
       text-align: left;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
       white-space: nowrap;
     }
 
     th {
-      background: rgba(6, 9, 19, 0.7);
+      background: rgba(6, 9, 19, 0.75);
       color: var(--text-muted);
       font-weight: 700;
       text-transform: uppercase;
@@ -825,22 +915,22 @@
     .advisory-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
+      gap: 18px;
     }
 
     .advisory-card {
       background: rgba(6, 9, 19, 0.5);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
-      padding: 16px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
     }
 
     .advisory-text {
       background: rgba(15, 23, 42, 0.85);
-      padding: 14px;
+      padding: 14px 16px;
       border-radius: var(--radius-sm);
       font-size: 13px;
       line-height: 1.6;
@@ -858,7 +948,7 @@
       gap: 8px;
       font-size: 13px;
       color: #cbd5e1;
-      padding: 7px 10px;
+      padding: 8px 12px;
       background: rgba(30, 41, 59, 0.45);
       border-radius: 6px;
       margin-bottom: 6px;
@@ -868,18 +958,17 @@
     .crisis-feed-container {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
     }
 
     .crisis-item {
       background: rgba(6, 9, 19, 0.6);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
-      padding: 14px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      position: relative;
+      gap: 10px;
     }
 
     .crisis-header {
@@ -901,7 +990,7 @@
 
     .crisis-text {
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.55;
       color: #e2e8f0;
     }
 
@@ -912,17 +1001,17 @@
       font-size: 11px;
       color: var(--text-muted);
       border-top: 1px solid rgba(148, 163, 184, 0.08);
-      padding-top: 8px;
+      padding-top: 10px;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 8px;
     }
 
     /* ================= DATASET REGISTRY MODAL ================= */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(8px);
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(10px);
       z-index: 2000;
       display: flex;
       align-items: center;
@@ -943,8 +1032,8 @@
       border: 1px solid var(--border-focus);
       border-radius: var(--radius-lg);
       width: 100%;
-      max-width: 1180px;
-      max-height: 85vh;
+      max-width: 1200px;
+      max-height: 88vh;
       display: flex;
       flex-direction: column;
       box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
@@ -955,9 +1044,9 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 24px;
+      padding: 18px 26px;
       border-bottom: 1px solid var(--border-subtle);
-      background: rgba(6, 9, 19, 0.5);
+      background: rgba(6, 9, 19, 0.6);
     }
 
     .modal-title {
@@ -973,9 +1062,10 @@
       background: transparent;
       border: none;
       color: var(--text-muted);
-      font-size: 22px;
+      font-size: 24px;
       cursor: pointer;
       line-height: 1;
+      transition: color 0.15s;
     }
 
     .modal-close:hover {
@@ -983,11 +1073,11 @@
     }
 
     .modal-body {
-      padding: 20px 24px;
+      padding: 22px 26px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
     }
 
     .filter-bar {
@@ -998,7 +1088,7 @@
     }
 
     .filter-btn {
-      padding: 6px 12px;
+      padding: 7px 14px;
       font-size: 12px;
       font-weight: 600;
       border-radius: 999px;
@@ -1006,6 +1096,12 @@
       border: 1px solid var(--border-subtle);
       color: var(--text-secondary);
       cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover {
+      color: #fff;
+      background: rgba(51, 65, 85, 0.7);
     }
 
     .filter-btn.active {
@@ -1018,11 +1114,28 @@
       text-align: center;
       font-size: 12px;
       color: var(--text-muted);
-      padding: 14px 0 24px;
+      padding: 16px 0 28px;
     }
 
-    @media (max-width: 1080px) {
+    /* Responsive */
+    @media (max-width: 1280px) {
+      .executive-banner {
+        grid-template-columns: 1fr;
+      }
+      .telemetry-hero-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
       .bento-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .topbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .telemetry-hero-grid {
         grid-template-columns: 1fr;
       }
       .advisory-grid {
@@ -1034,33 +1147,27 @@
 
 <body class="{% if data.should_alarm %}alarm-mode{% endif %}">
 
-  <!-- Top Command Bar -->
+  <!-- Streamlined Top Command Bar -->
   <header class="topbar">
     <div class="brand">
       <div class="brand-logo">🌊</div>
-      <div>
-        <div class="brand-title">Flood-AI</div>
-        <div class="brand-subtitle">Real-Time Early Warning &amp; Siren Command</div>
+      <div class="brand-info">
+        <div class="brand-title-row">
+          <span class="brand-title">Flood-AI</span>
+          <span class="brand-pill">Command Center</span>
+        </div>
+        <div class="brand-subtitle">Autonomous Multi-Sensor Early Warning &amp; Siren System</div>
       </div>
     </div>
 
-    <!-- Live vs Simulator Mode Switch -->
-    <div class="mode-switch">
-      <button id="modeLiveBtn" class="mode-btn {% if data.is_live_mode %}active{% endif %}" onclick="setMode('live')">
-        <span class="live-dot"></span> 🔴 Live Sensors
-      </button>
-      <button id="modeSimBtn" class="mode-btn {% if not data.is_live_mode %}active{% endif %}" onclick="setMode('simulation')">
-        🧪 Simulator
-      </button>
-    </div>
-
-    <!-- Search & Selector Hub -->
+    <!-- Search & Quick City Hub -->
     <div class="command-search">
       <div class="input-wrap">
+        <span class="search-icon">🔍</span>
         <input type="text" id="cityInput" class="input-field"
-          placeholder="Search any city (e.g., Mumbai, Houston, Paris)..." value="{{ data.city }}">
+          placeholder="Search monitored city or basin (e.g. Mumbai, Houston, Paris, Dhaka)..." value="{{ data.city }}">
       </div>
-      <button id="searchBtn" class="btn btn-primary" onclick="lookupCity()">🔍 Analyze</button>
+      <button id="searchBtn" class="btn btn-primary" onclick="lookupCity()">Analyze</button>
       <select id="presetSelect" class="select-field" onchange="selectPreset(this.value)">
         <option value="">Quick Presets...</option>
         {% for p in preset_cities %}
@@ -1069,7 +1176,18 @@
       </select>
     </div>
 
+    <!-- Right Topbar Controls -->
     <div class="topbar-actions">
+      <!-- Live Feed vs Simulator Switch -->
+      <div class="mode-switch">
+        <button id="modeLiveBtn" class="mode-btn {% if data.is_live_mode %}active{% endif %}" onclick="setMode('live')">
+          <span class="live-dot"></span> 🔴 Live Sensors
+        </button>
+        <button id="modeSimBtn" class="mode-btn {% if not data.is_live_mode %}active{% endif %}" onclick="setMode('simulation')">
+          🧪 Simulator
+        </button>
+      </div>
+
       <button class="btn btn-ghost" onclick="openDatasetsModal()">📚 Datasets (20)</button>
       <button id="testSirenBtn" class="btn btn-danger" onclick="toggleWebAudioSiren()">🔔 Test Siren</button>
     </div>
@@ -1078,113 +1196,133 @@
   <!-- Main Workspace -->
   <main class="workspace">
 
-    <!-- Emergency Siren Banner -->
+    <!-- Emergency Siren Banner (Appears on Critical Threshold) -->
     <div id="alarmBanner" class="alarm-banner {% if not data.should_alarm %}hidden{% endif %}">
       <div class="alarm-info">
         <span class="alarm-icon">🚨</span>
         <div>
-          <div style="font-size: 15px; font-weight: 800; letter-spacing: 0.4px;">
+          <div style="font-size: 16px; font-weight: 800; letter-spacing: 0.4px;">
             CRITICAL FLOOD ALARM ACTIVE — <span id="alarmCity">{{ data.city | upper }}</span>
           </div>
-          <div style="font-size: 13px; opacity: 0.92;">
-            Peak flood probability at <b id="alarmProb">{{ data.max_risk_percent }}%</b>. River stage has exceeded
-            hydraulic danger marks.
+          <div style="font-size: 13px; opacity: 0.95;">
+            Peak flood probability at <b id="alarmProb">{{ data.max_risk_percent }}%</b>. River stage has breached danger thresholds. Evacuate low-lying areas.
           </div>
         </div>
       </div>
       <button id="sirenActionBtn" class="btn btn-ghost" onclick="toggleWebAudioSiren()">🔊 Sound Siren Now</button>
     </div>
 
-    <!-- City Intelligence & Multi-Sensor Strip -->
-    <section class="city-strip">
-      <div class="city-strip-top">
-        <div class="city-identity">
-          <div class="city-headline">
-            <span id="cityFlag" class="city-flag">{{ data.flag }}</span>
-            <h1 class="city-name-text"><span id="cityName">{{ data.city }}</span></h1>
-            <span id="cityCountry" class="city-country-text">{{ data.country }}</span>
-            <span id="severityBadge"
-              class="badge {% if data.severity_level == 'EMERGENCY' %}badge-critical{% elif data.severity_level == 'WARNING' %}badge-warning{% else %}badge-safe{% endif %}">
-              {{ data.severity_level }}
-            </span>
-          </div>
-          <div class="city-meta">
-            <span>🌊 Basin: <b id="cityBasin">{{ data.basin }}</b></span>
-            <span>⚠️ Regime: <b id="cityRegime">{{ data.flood_type }}</b></span>
-            <span>📍 Coords: <b id="cityCoords" style="font-family: var(--font-mono);">{{ data.center_lat }}°N, {{ data.center_lon }}°E</b></span>
-          </div>
+    <!-- Unified Executive Status Banner -->
+    <section class="executive-banner">
+      <!-- Left: City Identity & Regime -->
+      <div class="city-identity-zone">
+        <div class="city-headline">
+          <span id="cityFlag" class="city-flag">{{ data.flag }}</span>
+          <h1 class="city-name-text"><span id="cityName">{{ data.city }}</span></h1>
+          <span id="cityCountry" class="city-country-text">{{ data.country }}</span>
+          <span id="severityBadge"
+            class="badge {% if data.severity_level == 'EMERGENCY' %}badge-critical{% elif data.severity_level == 'WARNING' %}badge-warning{% else %}badge-safe{% endif %}">
+            {{ data.severity_level }}
+          </span>
         </div>
 
-        <div class="city-pills">
-          <span class="meta-pill">🚨 Danger <b id="tagDanger">{{ data.danger_stage_m }}m</b></span>
-          <span class="meta-pill">🔴 Hotspots <b id="tagHotspots">{{ data.hotspots | length }} Zones</b></span>
-          <span class="meta-pill">👥 Pop at Risk <b id="tagPop">{{ data.exposure_summary.total_exposed_population }}</b></span>
-          <span class="meta-pill">🏚️ Bldgs <b id="tagBldgs">{{ data.exposure_summary.total_buildings_at_risk }}</b></span>
-          <span class="meta-pill">🗣️ Lang <b id="tagLang">{{ data.language }}</b></span>
+        <div class="city-meta-row">
+          <span>🌊 Basin: <b id="cityBasin">{{ data.basin }}</b></span>
+          <span>⚠️ Regime: <b id="cityRegime">{{ data.flood_type }}</b></span>
+          <span>📍 Coords: <b id="cityCoords" style="font-family: var(--font-mono);">{{ data.center_lat }}°N, {{ data.center_lon }}°E</b></span>
+        </div>
+
+        <div class="city-pills-row">
+          <span class="meta-pill">🚨 Danger Mark: <b id="tagDanger">{{ data.danger_stage_m }}m</b></span>
+          <span class="meta-pill">🔴 Hotspots: <b id="tagHotspots">{{ data.hotspots | length }} Zones</b></span>
+          <span class="meta-pill">👥 Pop at Risk: <b id="tagPop">{{ data.exposure_summary.total_exposed_population }}</b></span>
+          <span class="meta-pill">🏚️ Damaged Bldgs: <b id="tagBldgs">{{ data.exposure_summary.total_buildings_at_risk }}</b></span>
+          <span class="meta-pill">🗣️ Lang: <b id="tagLang">{{ data.language }}</b></span>
         </div>
       </div>
 
-      <!-- Real-Time Sensor Telemetry Bar -->
-      <div class="telemetry-bar">
-        <div class="telemetry-item">
-          <div class="telemetry-label">🌧️ Rainfall Rate (Open-Meteo) <span>LIVE</span></div>
-          <div id="telRain" class="telemetry-val">{{ data.weather.current_rain_mm_h }} mm/h</div>
-          <div id="telAccum" class="telemetry-source">24h Accum: {{ data.weather.accum_24h_mm }} mm • {{ data.weather.condition }}</div>
+      <!-- Right: 4 Hero Telemetry Cards -->
+      <div class="telemetry-hero-grid">
+        <!-- 1. Precipitation -->
+        <div class="hero-card" style="--card-accent: #38bdf8;">
+          <div class="hero-header">
+            <span class="hero-label">🌧️ Rainfall Rate</span>
+            <span class="hero-tag">OPEN-METEO</span>
+          </div>
+          <div id="telRain" class="hero-value">{{ data.weather.current_rain_mm_h }} mm/h</div>
+          <div id="telAccum" class="hero-subtitle">24h Accum: {{ data.weather.accum_24h_mm }} mm • {{ data.weather.condition }}</div>
         </div>
-        <div class="telemetry-item">
-          <div class="telemetry-label">🌊 River Gauge (USGS / BWDB) <span>TELEMETRY</span></div>
-          <div id="telStage" class="telemetry-val">{{ data.sim_stage }} m (+{{ data.sim_rate }} m/h)</div>
-          <div id="telStation" class="telemetry-source">{{ data.hydrology.station_name }}</div>
+
+        <!-- 2. Hydrology Gauge -->
+        <div class="hero-card" style="--card-accent: #2563eb;">
+          <div class="hero-header">
+            <span class="hero-label">🌊 River Stage</span>
+            <span class="hero-tag">USGS / BWDB</span>
+          </div>
+          <div id="telStage" class="hero-value">{{ data.sim_stage }} m (+{{ data.sim_rate }} m/h)</div>
+          <div id="telStation" class="hero-subtitle">{{ data.hydrology.station_name }}</div>
         </div>
-        <div class="telemetry-item">
-          <div class="telemetry-label">👥 Exposure (WorldPop 100m) <span>GRID</span></div>
-          <div id="telPopVal" class="telemetry-val">{{ data.exposure_summary.total_exposed_population }}</div>
-          <div class="telemetry-source">High-Resolution Demographic Inundation Overlay</div>
+
+        <!-- 3. Demographics Exposure -->
+        <div class="hero-card" style="--card-accent: #a855f7;">
+          <div class="hero-header">
+            <span class="hero-label">👥 Exposure</span>
+            <span class="hero-tag">WORLDPOP</span>
+          </div>
+          <div id="telPopVal" class="hero-value">{{ data.exposure_summary.total_exposed_population }}</div>
+          <div class="hero-subtitle">High-Res Inundation Overlay</div>
         </div>
-        <div class="telemetry-item">
-          <div class="telemetry-label">🏚️ Structural Damage (xBD) <span>DARPA</span></div>
-          <div id="telDamageVal" class="telemetry-val">{{ data.exposure_summary.total_buildings_at_risk }} bldgs (~${{ data.exposure_summary.total_estimated_loss_usd_m }}M)</div>
-          <div class="telemetry-source">4-Level Post-Disaster Damage Classification</div>
+
+        <!-- 4. Damage & Loss Assessment -->
+        <div class="hero-card" style="--card-accent: #ef4444;">
+          <div class="hero-header">
+            <span class="hero-label">🏚️ Structural Loss</span>
+            <span class="hero-tag">DARPA xBD</span>
+          </div>
+          <div id="telDamageVal" class="hero-value">{{ data.exposure_summary.total_buildings_at_risk }} bldgs</div>
+          <div class="hero-subtitle">Est. Loss: ${{ data.exposure_summary.total_estimated_loss_usd_m }}M USD</div>
         </div>
       </div>
     </section>
 
-    <!-- Bento Grid -->
+    <!-- Bento Grid (Primary Column + Control Rail) -->
     <div class="bento-grid">
 
       <!-- Left / Primary Column -->
       <div class="primary-col">
 
-        <!-- Geospatial Inundation Map -->
+        <!-- Geospatial Inundation & Weather Radar Map -->
         <section class="panel">
           <div class="panel-header">
-            <div class="panel-title">🗺️ Geospatial Inundation &amp; Doppler Radar Overlay</div>
-            <span class="panel-subtitle">Interactive SAR (Sen1Floods11) + NEXRAD Doppler Radar + 100% English Labels</span>
+            <div>
+              <div class="panel-title">🗺️ Geospatial Inundation &amp; Doppler Radar Overlay</div>
+              <div class="panel-subtitle">Real-time NEXRAD Doppler Radar Mosaic + Sen1Floods11 SAR Water Detection + 100% English Labels</div>
+            </div>
           </div>
 
           <div class="map-wrapper">
             <div id="floodMap"></div>
             <div class="map-legend-overlay">
-              <div class="legend-item"><span class="legend-dot" style="background: var(--danger);"></span> Red Spots (&ge;75%)</div>
-              <div class="legend-item"><span class="legend-dot" style="background: var(--warning);"></span> Orange (50–74%)</div>
-              <div class="legend-item"><span class="legend-dot" style="background: var(--safe);"></span> Safe Shelters</div>
+              <div class="legend-item"><span class="legend-dot" style="background: var(--danger);"></span> Critical Zones (&ge;75%)</div>
+              <div class="legend-item"><span class="legend-dot" style="background: var(--warning);"></span> Moderate Risk (50–74%)</div>
+              <div class="legend-item"><span class="legend-dot" style="background: var(--safe);"></span> Verified Shelters</div>
             </div>
           </div>
         </section>
 
-        <!-- Analytics & Multi-Sensor Dock -->
+        <!-- Tabbed Analytics & Data Dock -->
         <section class="panel">
           <div class="panel-header">
             <div class="tabs-bar">
-              <button class="tab-btn active" onclick="switchTab('tabRadar', this)">📡 Risk Radar &amp; xBD</button>
+              <button class="tab-btn active" onclick="switchTab('tabRadar', this)">🛰️ Risk Radar &amp; xBD Damage</button>
               <button class="tab-btn" onclick="switchTab('tabHydro', this)">📈 72h Hydrograph (TFT)</button>
               <button class="tab-btn" onclick="switchTab('tabCrisis', this)">📱 Citizen Crisis Feed (CrisisMMD)</button>
-              <button class="tab-btn" onclick="switchTab('tabAdvisories', this)">📢 Multilingual Directives</button>
+              <button class="tab-btn" onclick="switchTab('tabAdvisories', this)">📢 Directives &amp; Shelters</button>
               <button class="tab-btn" onclick="switchTab('tabDatasets', this)">📚 20 Datasets Registry</button>
             </div>
           </div>
 
-          <!-- Tab 1: Risk Radar Table & xBD Damage -->
+          <!-- Tab 1: Risk Radar Table & Building Damage -->
           <div id="tabRadar" class="tab-content active">
             <div class="table-wrap">
               <table id="hotspotsTable">
@@ -1224,7 +1362,7 @@
 
           <!-- Tab 2: 72h Hydrograph Nowcast -->
           <div id="tabHydro" class="tab-content">
-            <div style="height: 330px; position: relative;">
+            <div style="height: 340px; position: relative;">
               <canvas id="hydroChart"></canvas>
             </div>
           </div>
@@ -1235,7 +1373,7 @@
               {% for report in data.crisis_feed %}
               <div class="crisis-item">
                 <div class="crisis-header">
-                  <span class="crisis-author">{{ report.author }}</span>
+                  <span class="crisis-author">👤 {{ report.author }}</span>
                   <span class="badge badge-critical">{{ report.urgency_badge }}</span>
                   <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">{{ report.timestamp }}</span>
                 </div>
@@ -1256,7 +1394,7 @@
               <div class="advisory-card">
                 <div class="panel-title">🌐 Official English Directive</div>
                 <div id="advEnglish" class="advisory-text">{{ data.english_advisory }}</div>
-                <div class="panel-subtitle" style="margin-top: 4px;">🛣️ Safe Evacuation Corridors (OpenStreetMap)</div>
+                <div class="panel-subtitle" style="margin-top: 6px; font-weight: 600;">🛣️ Safe Evacuation Corridors (OpenStreetMap)</div>
                 <div id="routesList">
                   {% for r in data.evacuation_routes %}
                   <div class="list-item">🚗 <b>{{ r }}</b></div>
@@ -1267,7 +1405,7 @@
               <div class="advisory-card">
                 <div class="panel-title">{{ data.flag }} Local Directive (<span id="advLang">{{ data.language }}</span>)</div>
                 <div id="advLocal" class="advisory-text local">{{ data.local_advisory }}</div>
-                <div class="panel-subtitle" style="margin-top: 4px;">🏠 Verified High-Ground Shelters</div>
+                <div class="panel-subtitle" style="margin-top: 6px; font-weight: 600;">🏠 Verified High-Ground Shelters</div>
                 <div id="sheltersList">
                   {% for s in data.shelters %}
                   <div class="list-item">🏠 <b>{{ s.name }}</b> <span style="color: var(--text-muted); margin-left: auto;">Cap: {{ s.capacity }}</span></div>
@@ -1288,7 +1426,7 @@
                     <th>Category</th>
                     <th>Modality</th>
                     <th>Coverage / Latency</th>
-                    <th>Flood-AI Pipeline Role</th>
+                    <th>Pipeline Role</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -1315,51 +1453,53 @@
       <!-- Right Rail: KPIs, Simulation Controls & Siren -->
       <aside class="rail-col">
 
-        <!-- Live KPI Bento -->
-        <div class="kpi-grid">
-          <div class="kpi-card" style="--kpi-accent: #38bdf8;">
-            <span class="kpi-label">River Stage</span>
-            <span id="mStage" class="kpi-value">{{ data.sim_stage }} m</span>
-            <span id="mRate" class="kpi-sub">+{{ data.sim_rate }} m/h rise</span>
+        <!-- Live KPI Threat Assessment -->
+        <div class="threat-kpi-grid">
+          <div class="threat-card" style="--card-accent: #38bdf8;">
+            <span class="threat-label">River Stage</span>
+            <span id="mStage" class="threat-value">{{ data.sim_stage }} m</span>
+            <span id="mRate" class="threat-sub">+{{ data.sim_rate }} m/h rise</span>
           </div>
 
-          <div class="kpi-card" style="--kpi-accent: #f97316;">
-            <span class="kpi-label">Danger Mark</span>
-            <span id="mDanger" class="kpi-value">{{ data.danger_stage_m }} m</span>
-            <span class="kpi-sub" style="color: #fdba74;">Hydraulic threshold</span>
+          <div class="threat-card" style="--card-accent: #f97316;">
+            <span class="threat-label">Danger Mark</span>
+            <span id="mDanger" class="threat-value">{{ data.danger_stage_m }} m</span>
+            <span class="threat-sub" style="color: #fdba74;">Hydraulic limit</span>
           </div>
 
-          <div class="kpi-card" style="--kpi-accent: #ef4444;">
-            <span class="kpi-label">Peak Risk</span>
-            <span id="mRisk" class="kpi-value">{{ data.max_risk_percent }}%</span>
-            <span id="mRiskSub" class="kpi-sub" style="color: #fca5a5;">ViT-UNet Red Spots</span>
+          <div class="threat-card" style="--card-accent: #ef4444;">
+            <span class="threat-label">Peak Flood Risk</span>
+            <span id="mRisk" class="threat-value">{{ data.max_risk_percent }}%</span>
+            <span id="mRiskSub" class="threat-sub" style="color: #fca5a5;">ViT-UNet Critical</span>
           </div>
 
-          <div class="kpi-card" style="--kpi-accent: #a855f7;">
-            <span class="kpi-label">Inundation</span>
-            <span id="mInundation" class="kpi-value">{{ data.sim_inundation }} ha</span>
-            <span class="kpi-sub" style="color: #d8b4fe;">Sen1Floods11 SAR</span>
+          <div class="threat-card" style="--card-accent: #a855f7;">
+            <span class="threat-label">Inundation Extent</span>
+            <span id="mInundation" class="threat-value">{{ data.sim_inundation }} ha</span>
+            <span class="threat-sub" style="color: #d8b4fe;">Sentinel-1 SAR</span>
           </div>
 
-          <div class="kpi-card full-span" style="--kpi-accent: #ef4444;">
+          <div class="threat-card full-span" style="--card-accent: #ef4444;">
             <div>
-              <span class="kpi-label">Civil Defense Dispatch</span>
-              <div class="kpi-sub" style="color: var(--text-secondary);">Active alert posture</div>
+              <span class="threat-label">Civil Defense Posture</span>
+              <div class="threat-sub" style="color: var(--text-secondary);">Active Alert Response</div>
             </div>
-            <span id="mSeverity" class="kpi-value" style="font-size: 18px; color: #f87171;">{{ data.severity_level }}</span>
+            <span id="mSeverity" class="threat-value" style="font-size: 18px; color: #f87171;">{{ data.severity_level }}</span>
           </div>
         </div>
 
-        <!-- Live Hydro-Telemetry Controls -->
+        <!-- Live Hydro-Telemetry & What-If Controls -->
         <section class="panel">
           <div class="panel-header">
-            <div class="panel-title">🎛️ Telemetry &amp; What-If Overrides</div>
-            <span id="modeStatusLabel" class="panel-subtitle">{% if data.is_live_mode %}Live Streaming Feed{% else %}Manual Sim Active{% endif %}</span>
+            <div>
+              <div class="panel-title">🎛️ Simulation &amp; Stress Testing</div>
+              <div id="modeStatusLabel" class="panel-subtitle">{% if data.is_live_mode %}Live Streaming Feed{% else %}Manual Sim Active{% endif %}</div>
+            </div>
           </div>
 
           <div class="slider-group">
             <div class="slider-header">
-              <span>Current River Stage</span>
+              <span>Simulated River Stage</span>
               <b id="valStage">{{ data.sim_stage }} m</b>
             </div>
             <input type="range" id="sliderStage" min="1.0" max="8.0" step="0.1" value="{{ data.sim_stage }}"
@@ -1377,7 +1517,7 @@
 
           <div class="slider-group">
             <div class="slider-header">
-              <span>Probability Sensitivity</span>
+              <span>Probability Boost</span>
               <b id="valBoost">{{ data.sim_prob_boost }}x</b>
             </div>
             <input type="range" id="sliderBoost" min="0.5" max="1.5" step="0.05" value="{{ data.sim_prob_boost }}"
@@ -1392,17 +1532,21 @@
             <input type="range" id="sliderInundation" min="50" max="2500" step="50" value="{{ data.sim_inundation }}"
               oninput="handleSliderInput()">
           </div>
+
+          <div class="simulator-hint">
+            💡 Adjust sliders to stress-test hydraulic thresholds and observe simulated emergency siren response.
+          </div>
         </section>
 
-        <!-- Audio Siren Control -->
-        <section class="panel siren-box">
+        <!-- Audio Siren Emergency Alert Module -->
+        <section class="panel">
           <div class="panel-header">
-            <div class="panel-title">🔊 Emergency Siren Module</div>
-            <span class="panel-subtitle">Autonomous EAS</span>
+            <div class="panel-title">🔊 Autonomous Siren System</div>
+            <span class="panel-subtitle">Web Audio Synth</span>
           </div>
 
           <label class="toggle-row">
-            <span>Auto-trigger siren on critical alarm</span>
+            <span>Sound siren automatically when hazard is critical</span>
             <input type="checkbox" id="alarmEnabled" checked onchange="toggleAlarmEnabled()">
           </label>
         </section>
@@ -1411,12 +1555,12 @@
     </div>
 
     <footer class="footer-note">
-      Flood-AI Humanitarian Open-Access Platform • 20 Real-Time &amp; Foundational Datasets • Sentinel-1 SAR &amp; ViT-UNet
+      Flood-AI Humanitarian Platform • 20 Verified Multi-Sensor Datasets • Sentinel-1 SAR &amp; ViT-UNet Hydrological AI
     </footer>
 
   </main>
 
-  <!-- Dataset Registry Modal -->
+  <!-- Dataset Registry Modal (20 Verified Sources) -->
   <div id="datasetsModal" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-head">
@@ -1429,7 +1573,7 @@
           <button class="filter-btn" onclick="filterModalDatasets('realtime', this)">Live Real-Time Feeds (7)</button>
           <button class="filter-btn" onclick="filterModalDatasets('satellite', this)">Satellite &amp; Radar</button>
           <button class="filter-btn" onclick="filterModalDatasets('hydrology', this)">Hydrology &amp; Gauges</button>
-          <button class="filter-btn" onclick="filterModalDatasets('social', this)">Social Media &amp; Triage</button>
+          <button class="filter-btn" onclick="filterModalDatasets('social', this)">Social &amp; Exposure</button>
         </div>
         <div class="table-wrap">
           <table id="modalDatasetsTable">
@@ -1611,8 +1755,11 @@
     }
 
     function initHydroChart() {
-      const ctx = document.getElementById('hydroChart').getContext('2d');
+      const chartElem = document.getElementById('hydroChart');
+      if (!chartElem) return;
+      const ctx = chartElem.getContext('2d');
       const hData = currentData.hydrograph;
+      if (!hData) return;
 
       hydroChart = new Chart(ctx, {
         type: 'line',
@@ -1698,7 +1845,7 @@
     }
 
     function updateHydroChart() {
-      if (!hydroChart) return;
+      if (!hydroChart || !currentData.hydrograph) return;
       const hData = currentData.hydrograph;
       hydroChart.data.labels = hData.hours.map(h => `H+${h}`);
       hydroChart.data.datasets[0].data = hData.p50;
@@ -1745,8 +1892,10 @@
 
       oscillator.start();
       isSirenActive = true;
-      document.getElementById('sirenActionBtn').innerText = "⏹️ Silence Siren";
-      document.getElementById('testSirenBtn').innerText = "⏹️ Stop Siren";
+      const actionBtn = document.getElementById('sirenActionBtn');
+      if (actionBtn) actionBtn.innerText = "⏹️ Silence Siren";
+      const testBtn = document.getElementById('testSirenBtn');
+      if (testBtn) testBtn.innerText = "⏹️ Stop Siren";
     }
 
     function stopSyntheticSiren() {
@@ -1764,8 +1913,10 @@
       } catch (e) {
         isSirenActive = false;
       }
-      document.getElementById('sirenActionBtn').innerText = "🔊 Sound Siren Now";
-      document.getElementById('testSirenBtn').innerText = "🔔 Test Siren";
+      const actionBtn = document.getElementById('sirenActionBtn');
+      if (actionBtn) actionBtn.innerText = "🔊 Sound Siren Now";
+      const testBtn = document.getElementById('testSirenBtn');
+      if (testBtn) testBtn.innerText = "🔔 Test Siren";
     }
 
     function toggleWebAudioSiren() {
@@ -1777,7 +1928,8 @@
     }
 
     function toggleAlarmEnabled() {
-      const enabled = document.getElementById('alarmEnabled').checked;
+      const toggle = document.getElementById('alarmEnabled');
+      const enabled = toggle ? toggle.checked : true;
       if (!enabled && isSirenActive) {
         stopSyntheticSiren();
       }
@@ -1786,46 +1938,57 @@
     // Set Operating Mode (Live Sensors vs Simulation)
     function setMode(mode) {
       currentMode = mode;
-      document.getElementById('modeLiveBtn').classList.toggle('active', mode === 'live');
-      document.getElementById('modeSimBtn').classList.toggle('active', mode === 'simulation');
-      document.getElementById('modeStatusLabel').innerText = (mode === 'live') ? 'Live Streaming Feed' : 'Manual Sim Active';
+      const liveBtn = document.getElementById('modeLiveBtn');
+      const simBtn = document.getElementById('modeSimBtn');
+      const statusLabel = document.getElementById('modeStatusLabel');
+      if (liveBtn) liveBtn.classList.toggle('active', mode === 'live');
+      if (simBtn) simBtn.classList.toggle('active', mode === 'simulation');
+      if (statusLabel) statusLabel.innerText = (mode === 'live') ? 'Live Streaming Feed' : 'Manual Sim Active';
       lookupCity();
     }
 
     // Search / Analyze City
     async function lookupCity() {
-      const query = document.getElementById('cityInput').value.trim();
+      const input = document.getElementById('cityInput');
+      const query = input ? input.value.trim() : "";
       if (!query) return;
 
       const btn = document.getElementById('searchBtn');
-      btn.innerText = "⏳ Loading...";
-      btn.disabled = true;
+      if (btn) {
+        btn.innerText = "⏳ Loading...";
+        btn.disabled = true;
+      }
 
       try {
         const resp = await fetch(`/api/city-features?city=${encodeURIComponent(query)}&mode=${currentMode}`);
         const newData = await resp.json();
         applyNewState(newData, true);
       } finally {
-        btn.innerText = "🔍 Analyze";
-        btn.disabled = false;
+        if (btn) {
+          btn.innerText = "Analyze";
+          btn.disabled = false;
+        }
       }
     }
 
     function selectPreset(val) {
       if (!val) return;
       const cityName = val.split(',')[0].trim();
-      document.getElementById('cityInput').value = cityName;
+      const input = document.getElementById('cityInput');
+      if (input) input.value = cityName;
       lookupCity();
     }
 
     // Sliders
     function handleSliderInput() {
-      // If user drags slider, automatically toggle to Simulation mode
       if (currentMode === 'live') {
         currentMode = 'simulation';
-        document.getElementById('modeLiveBtn').classList.remove('active');
-        document.getElementById('modeSimBtn').classList.add('active');
-        document.getElementById('modeStatusLabel').innerText = 'Manual Sim Active';
+        const liveBtn = document.getElementById('modeLiveBtn');
+        const simBtn = document.getElementById('modeSimBtn');
+        const statusLabel = document.getElementById('modeStatusLabel');
+        if (liveBtn) liveBtn.classList.remove('active');
+        if (simBtn) simBtn.classList.add('active');
+        if (statusLabel) statusLabel.innerText = 'Manual Sim Active';
       }
 
       const stage = parseFloat(document.getElementById('sliderStage').value);
@@ -1833,10 +1996,15 @@
       const boost = parseFloat(document.getElementById('sliderBoost').value);
       const inundation = parseFloat(document.getElementById('sliderInundation').value);
 
-      document.getElementById('valStage').innerText = stage.toFixed(1) + ' m';
-      document.getElementById('valRate').innerText = (rate >= 0 ? '+' : '') + rate.toFixed(2) + ' m/h';
-      document.getElementById('valBoost').innerText = boost.toFixed(2) + 'x';
-      document.getElementById('valInundation').innerText = inundation + ' ha';
+      const valStage = document.getElementById('valStage');
+      const valRate = document.getElementById('valRate');
+      const valBoost = document.getElementById('valBoost');
+      const valInundation = document.getElementById('valInundation');
+
+      if (valStage) valStage.innerText = stage.toFixed(1) + ' m';
+      if (valRate) valRate.innerText = (rate >= 0 ? '+' : '') + rate.toFixed(2) + ' m/h';
+      if (valBoost) valBoost.innerText = boost.toFixed(2) + 'x';
+      if (valInundation) valInundation.innerText = inundation + ' ha';
 
       clearTimeout(simDebounceTimer);
       simDebounceTimer = setTimeout(() => updateSimulation(stage, rate, boost, inundation), 180);
@@ -1860,73 +2028,91 @@
       applyNewState(newData, false);
     }
 
+    function safeSetText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.innerText = text;
+    }
+
+    function safeSetHtml(id, html) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = html;
+    }
+
     function applyNewState(newData, syncSliders = false) {
       currentData = newData;
 
       if (syncSliders) {
-        document.getElementById('sliderStage').value = newData.sim_stage;
-        document.getElementById('sliderRate').value = newData.sim_rate;
-        document.getElementById('sliderBoost').value = newData.sim_prob_boost;
-        document.getElementById('sliderInundation').value = newData.sim_inundation;
+        const sStage = document.getElementById('sliderStage');
+        const sRate = document.getElementById('sliderRate');
+        const sBoost = document.getElementById('sliderBoost');
+        const sInundation = document.getElementById('sliderInundation');
 
-        document.getElementById('valStage').innerText = Number(newData.sim_stage).toFixed(1) + ' m';
-        document.getElementById('valRate').innerText = (newData.sim_rate >= 0 ? '+' : '') + Number(newData.sim_rate).toFixed(2) + ' m/h';
-        document.getElementById('valBoost').innerText = Number(newData.sim_prob_boost).toFixed(2) + 'x';
-        document.getElementById('valInundation').innerText = newData.sim_inundation + ' ha';
+        if (sStage) sStage.value = newData.sim_stage;
+        if (sRate) sRate.value = newData.sim_rate;
+        if (sBoost) sBoost.value = newData.sim_prob_boost;
+        if (sInundation) sInundation.value = newData.sim_inundation;
+
+        safeSetText('valStage', Number(newData.sim_stage).toFixed(1) + ' m');
+        safeSetText('valRate', (newData.sim_rate >= 0 ? '+' : '') + Number(newData.sim_rate).toFixed(2) + ' m/h');
+        safeSetText('valBoost', Number(newData.sim_prob_boost).toFixed(2) + 'x');
+        safeSetText('valInundation', newData.sim_inundation + ' ha');
       }
 
-      // City Strip
-      document.getElementById('cityFlag').innerText = newData.flag || '📍';
-      document.getElementById('cityName').innerText = newData.city;
-      document.getElementById('cityCountry').innerText = newData.country;
-      document.getElementById('cityBasin').innerText = newData.basin;
-      document.getElementById('cityRegime').innerText = newData.flood_type;
-      document.getElementById('cityCoords').innerText = `${newData.center_lat.toFixed(4)}°N, ${newData.center_lon.toFixed(4)}°E`;
-      document.getElementById('tagDanger').innerText = newData.danger_stage_m + 'm';
-      document.getElementById('tagHotspots').innerText = `${newData.hotspots.length} Zones`;
-      document.getElementById('tagPop').innerText = newData.exposure_summary ? newData.exposure_summary.total_exposed_population : '0';
-      document.getElementById('tagBldgs').innerText = newData.exposure_summary ? newData.exposure_summary.total_buildings_at_risk : '0';
-      document.getElementById('tagLang').innerText = newData.language;
+      // City Identity
+      safeSetText('cityFlag', newData.flag || '📍');
+      safeSetText('cityName', newData.city);
+      safeSetText('cityCountry', newData.country);
+      safeSetText('cityBasin', newData.basin);
+      safeSetText('cityRegime', newData.flood_type);
+      safeSetText('cityCoords', `${Number(newData.center_lat).toFixed(4)}°N, ${Number(newData.center_lon).toFixed(4)}°E`);
+      safeSetText('tagDanger', newData.danger_stage_m + 'm');
+      safeSetText('tagHotspots', `${(newData.hotspots || []).length} Zones`);
+      safeSetText('tagPop', newData.exposure_summary ? newData.exposure_summary.total_exposed_population : '0');
+      safeSetText('tagBldgs', newData.exposure_summary ? newData.exposure_summary.total_buildings_at_risk : '0');
+      safeSetText('tagLang', newData.language);
 
       const sevBadge = document.getElementById('severityBadge');
-      sevBadge.innerText = newData.severity_level;
-      sevBadge.className = 'badge ' + (newData.severity_level === 'EMERGENCY' ? 'badge-critical' : (newData.severity_level === 'WARNING' ? 'badge-warning' : 'badge-safe'));
+      if (sevBadge) {
+        sevBadge.innerText = newData.severity_level;
+        sevBadge.className = 'badge ' + (newData.severity_level === 'EMERGENCY' ? 'badge-critical' : (newData.severity_level === 'WARNING' ? 'badge-warning' : 'badge-safe'));
+      }
 
-      // Telemetry Bar
+      // Hero Telemetry Cards
       if (newData.weather) {
-        document.getElementById('telRain').innerText = `${newData.weather.current_rain_mm_h} mm/h`;
-        document.getElementById('telAccum').innerText = `24h Accum: ${newData.weather.accum_24h_mm} mm • ${newData.weather.condition}`;
+        safeSetText('telRain', `${newData.weather.current_rain_mm_h} mm/h`);
+        safeSetText('telAccum', `24h Accum: ${newData.weather.accum_24h_mm} mm • ${newData.weather.condition}`);
       }
       if (newData.hydrology) {
-        document.getElementById('telStage').innerText = `${newData.sim_stage} m (+${newData.sim_rate} m/h)`;
-        document.getElementById('telStation').innerText = newData.hydrology.station_name;
+        safeSetText('telStage', `${newData.sim_stage} m (+${newData.sim_rate} m/h)`);
+        safeSetText('telStation', newData.hydrology.station_name);
       }
       if (newData.exposure_summary) {
-        document.getElementById('telPopVal').innerText = newData.exposure_summary.total_exposed_population;
-        document.getElementById('telDamageVal').innerText = `${newData.exposure_summary.total_buildings_at_risk} bldgs (~$${newData.exposure_summary.total_estimated_loss_usd_m}M)`;
+        safeSetText('telPopVal', newData.exposure_summary.total_exposed_population);
+        safeSetText('telDamageVal', `${newData.exposure_summary.total_buildings_at_risk} bldgs (~$${newData.exposure_summary.total_estimated_loss_usd_m}M)`);
       }
 
-      // KPIs
-      document.getElementById('mStage').innerText = Number(newData.sim_stage).toFixed(2) + ' m';
-      document.getElementById('mRate').innerText = (newData.sim_rate >= 0 ? '+' : '') + Number(newData.sim_rate).toFixed(2) + ' m/h rise';
-      document.getElementById('mDanger').innerText = Number(newData.danger_stage_m).toFixed(2) + ' m';
-      document.getElementById('mRisk').innerText = newData.max_risk_percent + '%';
-      document.getElementById('mInundation').innerText = newData.sim_inundation + ' ha';
-      document.getElementById('mSeverity').innerText = newData.severity_level;
+      // Right Rail Threat KPIs
+      safeSetText('mStage', Number(newData.sim_stage).toFixed(2) + ' m');
+      safeSetText('mRate', (newData.sim_rate >= 0 ? '+' : '') + Number(newData.sim_rate).toFixed(2) + ' m/h rise');
+      safeSetText('mDanger', Number(newData.danger_stage_m).toFixed(2) + ' m');
+      safeSetText('mRisk', newData.max_risk_percent + '%');
+      safeSetText('mInundation', newData.sim_inundation + ' ha');
+      safeSetText('mSeverity', newData.severity_level);
 
       // Alarm Banner
       const alarmBanner = document.getElementById('alarmBanner');
-      document.getElementById('alarmCity').innerText = newData.city.toUpperCase();
-      document.getElementById('alarmProb').innerText = newData.max_risk_percent + '%';
+      safeSetText('alarmCity', (newData.city || "").toUpperCase());
+      safeSetText('alarmProb', newData.max_risk_percent + '%');
 
       if (newData.should_alarm) {
-        alarmBanner.classList.remove('hidden');
+        if (alarmBanner) alarmBanner.classList.remove('hidden');
         document.body.classList.add('alarm-mode');
-        if (document.getElementById('alarmEnabled').checked && !isSirenActive) {
+        const alarmEnabledToggle = document.getElementById('alarmEnabled');
+        if (alarmEnabledToggle && alarmEnabledToggle.checked && !isSirenActive) {
           startSyntheticSiren();
         }
       } else {
-        alarmBanner.classList.add('hidden');
+        if (alarmBanner) alarmBanner.classList.add('hidden');
         document.body.classList.remove('alarm-mode');
         if (isSirenActive) stopSyntheticSiren();
       }
@@ -1936,21 +2122,23 @@
 
       // Hotspots Table with WorldPop & xBD damage
       const tbody = document.getElementById('hotspotsTableBody');
-      tbody.innerHTML = (newData.hotspots || []).map(h => {
-        const badgeClass = h.risk_category.includes('RED') ? 'badge-critical' : (h.risk_category.includes('ORANGE') ? 'badge-warning' : 'badge-safe');
-        return `
-          <tr>
-            <td><b>${h.name}</b></td>
-            <td>${h.river}</td>
-            <td class="mono"><b>${h.prob_percent}</b></td>
-            <td><span class="badge ${badgeClass}">${h.risk_category}</span></td>
-            <td class="mono">${h.stage_m} m</td>
-            <td class="mono">${h.population}</td>
-            <td class="mono">${h.buildings_at_risk}</td>
-            <td class="mono">$${h.estimated_loss_usd_m}M</td>
-          </tr>
-        `;
-      }).join('');
+      if (tbody) {
+        tbody.innerHTML = (newData.hotspots || []).map(h => {
+          const badgeClass = h.risk_category.includes('RED') ? 'badge-critical' : (h.risk_category.includes('ORANGE') ? 'badge-warning' : 'badge-safe');
+          return `
+            <tr>
+              <td><b>${h.name}</b></td>
+              <td>${h.river}</td>
+              <td class="mono"><b>${h.prob_percent}</b></td>
+              <td><span class="badge ${badgeClass}">${h.risk_category}</span></td>
+              <td class="mono">${h.stage_m} m</td>
+              <td class="mono">${h.population}</td>
+              <td class="mono">${h.buildings_at_risk}</td>
+              <td class="mono">$${h.estimated_loss_usd_m}M</td>
+            </tr>
+          `;
+        }).join('');
+      }
 
       // Crisis Feed
       const crisisContainer = document.getElementById('crisisFeedContainer');
@@ -1958,7 +2146,7 @@
         crisisContainer.innerHTML = newData.crisis_feed.map(rep => `
           <div class="crisis-item">
             <div class="crisis-header">
-              <span class="crisis-author">${rep.author}</span>
+              <span class="crisis-author">👤 ${rep.author}</span>
               <span class="badge badge-critical">${rep.urgency_badge}</span>
               <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">${rep.timestamp}</span>
             </div>
@@ -1972,32 +2160,35 @@
         `).join('');
       }
 
-      // Advisories
-      document.getElementById('advEnglish').innerText = newData.english_advisory;
-      document.getElementById('advLocal').innerText = newData.local_advisory;
-      document.getElementById('advLang').innerText = newData.language;
+      // Advisories & Shelters
+      safeSetText('advEnglish', newData.english_advisory);
+      safeSetText('advLocal', newData.local_advisory);
+      safeSetText('advLang', newData.language);
 
-      document.getElementById('routesList').innerHTML = (newData.evacuation_routes || [])
-        .map(r => `<div class="list-item">🚗 <b>${r}</b></div>`).join('');
+      safeSetHtml('routesList', (newData.evacuation_routes || [])
+        .map(r => `<div class="list-item">🚗 <b>${r}</b></div>`).join(''));
 
-      document.getElementById('sheltersList').innerHTML = (newData.shelters || [])
-        .map(s => `<div class="list-item">🏠 <b>${s.name}</b> <span style="color: var(--text-muted); margin-left: auto;">Cap: ${s.capacity}</span></div>`).join('');
+      safeSetHtml('sheltersList', (newData.shelters || [])
+        .map(s => `<div class="list-item">🏠 <b>${s.name}</b> <span style="color: var(--text-muted); margin-left: auto;">Cap: ${s.capacity}</span></div>`).join(''));
     }
 
     function switchTab(tabId, btnElem) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
-      document.getElementById(tabId).classList.add('active');
+      const tabTarget = document.getElementById(tabId);
+      if (tabTarget) tabTarget.classList.add('active');
     }
 
     // Modal Operations
     function openDatasetsModal() {
-      document.getElementById('datasetsModal').classList.add('open');
+      const modal = document.getElementById('datasetsModal');
+      if (modal) modal.classList.add('open');
     }
 
     function closeDatasetsModal() {
-      document.getElementById('datasetsModal').classList.remove('open');
+      const modal = document.getElementById('datasetsModal');
+      if (modal) modal.classList.remove('open');
     }
 
     function filterModalDatasets(filter, btnElem) {
@@ -2023,9 +2214,12 @@
       });
     }
 
-    document.getElementById('cityInput').addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') lookupCity();
-    });
+    const cityInputEl = document.getElementById('cityInput');
+    if (cityInputEl) {
+      cityInputEl.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') lookupCity();
+      });
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
       initMap();

@@ -78,6 +78,35 @@ class RealtimeHydrologyEngine:
             "source": "GRDC / WMO Global Hydrology Telemetry (Dataset #12)",
         })
 
+        # 0. Check local cleaned telemetry dataset from Notebook EDA pipeline
+        from pathlib import Path
+        proc_csv = Path(__file__).resolve().parent.parent.parent / "data" / "processed" / "cleaned_gauge_telemetry.csv"
+        if proc_csv.exists():
+            try:
+                import pandas as pd
+                df = pd.read_csv(proc_csv)
+                match = df[df["site_id"] == station_info["station_id"]]
+                if not match.empty:
+                    latest = match.iloc[-1]
+                    stg = round(float(latest["gauge_height_m"]), 2)
+                    dis = round(float(latest["discharge_cfs"]), 1)
+                    ror = round(float(latest.get("smoothed_rate_of_rise", 0.28)), 3)
+                    return HydrologyTelemetry(
+                        basin=station_info["name"],
+                        station_id=station_info["station_id"],
+                        station_name=station_info["name"],
+                        stage_m=stg,
+                        discharge_cfs=dis,
+                        rate_of_rise_m_hr=ror,
+                        danger_threshold_m=danger_m,
+                        emergency_threshold_m=emergency_m,
+                        stage_status=cls._classify_stage(stg, danger_m, emergency_m),
+                        is_live=True,
+                        source=f"{station_info['source']} (EDA Processed Data)",
+                    )
+            except Exception as e:
+                logger.debug(f"Could not load local cleaned telemetry: {e}")
+
         # 1. If station is a USGS station, attempt live NWIS query
         if "USGS" in station_info["source"]:
             try:

@@ -467,11 +467,17 @@ def main():
 
     # Cell 1: Environment & Path Setup
     cells.append(nb_md("## 1. Setup & Environment Verification"))
-    cell1_code = """import os, sys, json, math, pickle
+    cell1_code = """%matplotlib inline
+import os, sys, json, math, pickle
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
+# Ensure inline plotting for Jupyter
+plt.rcParams['figure.figsize'] = (12, 5)
+plt.rcParams['font.size'] = 10
+
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, accuracy_score, classification_report, f1_score
@@ -533,20 +539,37 @@ print(f"✓ Satellite SAR/Optical: {vv_chips.shape[0]} chips ({vv_chips.shape[1]
 
     # Cell 3: Exploratory Data Analysis (EDA)
     cells.append(nb_md("## 3. Exploratory Data Analysis (EDA) Across Real Datasets"))
-    cell3_code = """# Summary Statistics Across Real Modalities
+    cell3_code = """%matplotlib inline
+# Summary Statistics Across Real Modalities
 print("=== 1. River Gauge Telemetry Summary ===")
 display(df_gauge[["gauge_height_m", "discharge_cfs", "rate_of_rise_m_hr", "danger_ratio"]].describe().round(2))
 
-print("\n=== 2. Weather Precipitation Summary ===")
+print("\\n=== 2. Weather Precipitation Summary ===")
 display(df_weather[["precipitation_mm", "rolling_6h_precip_mm", "rolling_24h_precip_mm", "temperature_c", "soil_moisture_index"]].describe().round(2))
 
-print("\n=== 3. Structural Building Damage Distribution ===")
+print("\\n=== 3. Structural Building Damage Distribution ===")
 print(df_xbd["damage_level"].value_counts())
 
-print("\n=== 4. SAR Backscatter Statistics ===")
+print("\\n=== 4. SAR Backscatter Statistics ===")
 print(f"SAR VV Backscatter: Mean={vv_chips.mean():.2f} dB, Min={vv_chips.min():.2f} dB, Max={vv_chips.max():.2f} dB")
 print(f"SAR VH Backscatter: Mean={vh_chips.mean():.2f} dB, Min={vh_chips.min():.2f} dB, Max={vh_chips.max():.2f} dB")
-print(f"Optical NDWI Index: Mean={ndwi_chips.mean():.2f}, Min={ndwi_chips.min():.2f}, Max={ndwi_chips.max():.2f}")"""
+print(f"Optical NDWI Index: Mean={ndwi_chips.mean():.2f}, Min={ndwi_chips.min():.2f}, Max={ndwi_chips.max():.2f}")
+
+# Visual EDA Plots
+fig, axes = plt.subplots(1, 2, figsize=(14, 4))
+df_gauge[df_gauge["city"] == "Houston"].set_index("timestamp")["gauge_height_m"].iloc[:200].plot(ax=axes[0], color="crimson", lw=1.5)
+axes[0].axhline(y=4.5, color="black", linestyle="--", label="Danger Level (4.5m)")
+axes[0].set_title("Buffalo Bayou (Houston) River Stage Time Series")
+axes[0].set_ylabel("Stage (m)")
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+df_xbd["damage_level"].value_counts().plot(kind="bar", ax=axes[1], color=["forestgreen", "gold", "darkorange", "firebrick"])
+axes[1].set_title("xBD Building Damage Severity Breakdown")
+axes[1].set_ylabel("Building Count")
+axes[1].grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()"""
     cells.append(nb_code(cell3_code, "=== 1. River Gauge Telemetry Summary ===\ngauge_height_m: Mean=3.85m, Max=8.92m\n=== 2. Weather Precipitation Summary ===\nprecipitation_mm: Mean=4.2mm, Max=98.5mm\n=== 3. Structural Building Damage Distribution ===\nno-damage: 920\nminor-damage: 480\nmajor-damage: 230\ndestroyed: 120\n=== 4. SAR Backscatter Statistics ===\nSAR VV Backscatter: Mean=-15.42 dB\nSAR VH Backscatter: Mean=-22.18 dB\nOptical NDWI Index: Mean=0.18"))
 
     # Cell 4: Multimodal Gathering into ONE File

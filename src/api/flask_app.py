@@ -399,6 +399,124 @@ def health():
     })
 
 
+@app.route("/api/v1/unified-master-data")
+def api_unified_master_data():
+    """Returns preview and summary of the unified master dataset."""
+    from pathlib import Path
+    import pandas as pd
+    csv_path = Path(__file__).resolve().parent.parent.parent / "data" / "processed" / "unified_flood_master_dataset.csv"
+    if not csv_path.exists():
+        return jsonify({"error": "unified_flood_master_dataset.csv not found"}), 404
+
+    df = pd.read_csv(csv_path)
+    city_filter = request.args.get("city")
+    if city_filter:
+        df = df[df["city"].str.lower() == city_filter.lower()]
+    
+    limit = int(request.args.get("limit", 25))
+    return jsonify({
+        "total_records": len(df),
+        "columns": list(df.columns),
+        "records": df.head(limit).to_dict(orient="records"),
+    })
+
+
+@app.route("/api/v1/live-operational-state")
+def api_live_operational_state():
+    """Returns live operational alerting state across all monitored pilot cities."""
+    from pathlib import Path
+    import json
+    json_path = Path(__file__).resolve().parent.parent.parent / "data" / "processed" / "live_operational_state.json"
+    if not json_path.exists():
+        return jsonify({"error": "live_operational_state.json not found"}), 404
+
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return jsonify(data)
+
+
+@app.route("/api/v1/models/predict-stage", methods=["POST"])
+def api_predict_stage():
+    """Predicts future river stage using trained Hydro-Nowcaster."""
+    import pickle
+    from pathlib import Path
+    import pandas as pd
+    model_path = Path(__file__).resolve().parent.parent.parent / "data" / "models" / "hydro_nowcaster.pkl"
+    if not model_path.exists():
+        return jsonify({"error": "hydro_nowcaster.pkl model not found"}), 404
+
+    req_data = request.get_json() or {}
+    try:
+        with open(model_path, "rb") as f:
+            model = pickle.load(f)
+        features_dict = {
+            "gauge_height_m": float(req_data.get("gauge_height_m", 4.2)),
+            "rate_of_rise_m_hr": float(req_data.get("rate_of_rise_m_hr", 0.15)),
+            "precipitation_mm": float(req_data.get("precipitation_mm", 12.0)),
+            "rolling_6h_precip_mm": float(req_data.get("rolling_6h_precip_mm", 35.0)),
+            "rolling_24h_precip_mm": float(req_data.get("rolling_24h_precip_mm", 75.0)),
+            "temperature_c": float(req_data.get("temperature_c", 28.0)),
+            "humidity_pct": float(req_data.get("humidity_pct", 88.0)),
+            "surface_pressure_hpa": float(req_data.get("surface_pressure_hpa", 1008.0)),
+            "wind_speed_kmh": float(req_data.get("wind_speed_kmh", 15.0)),
+            "soil_moisture_index": float(req_data.get("soil_moisture_index", 0.65)),
+        }
+        df_input = pd.DataFrame([features_dict])
+        pred_stage = float(model.predict(df_input)[0])
+        return jsonify({
+            "predicted_lead_6h_gauge_height_m": round(pred_stage, 3),
+            "model": "RandomForestHydroNowcaster",
+            "status": "success",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/v1/models/predict-damage", methods=["POST"])
+def api_predict_damage():
+    """Predicts building structural damage using trained xBD damage model."""
+    import pickle
+    from pathlib import Path
+    import pandas as pd
+    model_path = Path(__file__).resolve().parent.parent.parent / "data" / "models" / "xbd_damage_classifier.pkl"
+    if not model_path.exists():
+        return jsonify({"error": "xbd_damage_classifier.pkl model not found"}), 404
+
+    req_data = request.get_json() or {}
+    try:
+        with open(model_path, "rb") as f:
+            model = pickle.load(f)
+
+        structure = req_data.get("structure_type", "Residential")
+        depth = float(req_data.get("inundation_depth_cm", 85.0))
+        area = float(req_data.get("building_area_sqm", 120.0))
+
+        feat_names = list(getattr(model, "feature_names_in_", []))
+        feat_dict = {f: 0 for f in feat_names}
+        dummy_col = f"structure_type_{structure}"
+        if dummy_col in feat_dict:
+            feat_dict[dummy_col] = 1
+        if "inundation_depth_cm" in feat_dict:
+            feat_dict["inundation_depth_cm"] = depth
+        if "building_area_sqm" in feat_dict:
+            feat_dict["building_area_sqm"] = area
+
+        df_input = pd.DataFrame([feat_dict])
+        pred_class = int(model.predict(df_input)[0])
+        labels = {0: "no-damage", 1: "minor-damage", 2: "major-damage", 3: "destroyed"}
+        return jsonify({
+            "structure_type": structure,
+            "inundation_depth_cm": depth,
+            "building_area_sqm": area,
+            "predicted_damage_code": pred_class,
+            "predicted_damage_label": labels.get(pred_class, "unknown"),
+            "model": "xBD_RandomForestClassifier",
+            "status": "success",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run Flood-AI Flask Early Warning Dashboard")

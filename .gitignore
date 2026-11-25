@@ -25,6 +25,10 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+!data/processed/*.csv
+!data/processed/*.json
+!data/processed/*.npz
+!data/models/*.pkl
 data/external/*
 !data/external/.gitkeep
 

@@ -1,0 +1,73 @@
+{
+  "timestamp_utc": "2026-11-25T05:27:32.050418+00:00",
+  "system_status": "ACTIVE_MONITORING",
+  "global_alert_level": "WARNING",
+  "active_sirens": 4,
+  "monitored_cities": {
+    "Dhaka": {
+      "city": "Dhaka",
+      "gauge_stage_m": 4.11,
+      "danger_threshold_m": 4.71,
+      "danger_ratio": 0.87,
+      "precipitation_24h_mm": 11.7,
+      "composite_risk_score": 41.0,
+      "alert_severity": "WARNING",
+      "siren_trigger": true,
+      "exposed_population": 605978,
+      "shelter_capacity": 21617,
+      "origin": "observed"
+    },
+    "Houston": {
+      "city": "Houston",
+      "gauge_stage_m": 2.8,
+      "danger_threshold_m": 4.5,
+      "danger_ratio": 0.62,
+      "precipitation_24h_mm": 15.5,
+      "composite_risk_score": 34.6,
+      "alert_severity": "ADVISORY",
+      "siren_trigger": false,
+      "exposed_population": 580853,
+      "shelter_capacity": 19877,
+      "origin": "observed"
+    },
+    "Mumbai": {
+      "city": "Mumbai",
+      "gauge_stage_m": 3.75,
+      "danger_threshold_m": 4.37,
+      "danger_ratio": 0.86,
+      "precipitation_24h_mm": 5.4,
+      "composite_risk_score": 38.7,
+      "alert_severity": "WARNING",
+      "siren_trigger": true,
+      "exposed_population": 551087,
+      "shelter_capacity": 23052,
+      "origin": "observed"
+    },
+    "Paris": {
+      "city": "Paris",
+      "gauge_stage_m": 2.42,
+      "danger_threshold_m": 2.76,
+      "danger_ratio": 0.88,
+      "precipitation_24h_mm": 12.3,
+      "composite_risk_score": 41.7,
+      "alert_severity": "WARNING",
+      "siren_trigger": true,
+      "exposed_population": 632152,
+      "shelter_capacity": 23804,
+      "origin": "observed"
+    },
+    "Tokyo": {
+      "city": "Tokyo",
+      "gauge_stage_m": 2.88,
+      "danger_threshold_m": 3.33,
+      "danger_ratio": 0.86,
+      "precipitation_24h_mm": 8.9,
+      "composite_risk_score": 40.7,
+      "alert_severity": "WARNING",
+      "siren_trigger": true,
+      "exposed_population": 634346,
+      "shelter_capacity": 17050,
+      "origin": "observed"
+    }
+  }
+}

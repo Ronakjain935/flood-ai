@@ -203,6 +203,29 @@ def test_flask_app_endpoints():
     assert res_audio.status_code == 200
     assert "data:audio/wav;base64," in res_audio.get_json()["audio_data_uri"]
 
+    # 6. Unified Master Dataset endpoint
+    res_master = client.get("/api/v1/unified-master-data?limit=5")
+    assert res_master.status_code == 200
+    master_json = res_master.get_json()
+    assert "total_records" in master_json
+    assert len(master_json["records"]) <= 5
+
+    # 7. Live Operational State endpoint
+    res_live = client.get("/api/v1/live-operational-state")
+    assert res_live.status_code == 200
+    live_json = res_live.get_json()
+    assert "monitored_cities" in live_json
+    assert "system_status" in live_json
+
+    # 8. Model Prediction endpoints
+    res_stage = client.post("/api/v1/models/predict-stage", json={"gauge_height_m": 4.5, "precipitation_mm": 20.0})
+    assert res_stage.status_code == 200
+    assert "predicted_lead_6h_gauge_height_m" in res_stage.get_json()
+
+    res_dmg = client.post("/api/v1/models/predict-damage", json={"inundation_depth_cm": 150.0, "building_area_sqm": 95.0})
+    assert res_dmg.status_code == 200
+    assert "predicted_damage_label" in res_dmg.get_json()
+
 
 def test_20_datasets_registry_and_models():
     """Verify 20 official multi-sensor datasets catalog and ingestion engines."""

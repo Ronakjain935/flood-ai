@@ -468,6 +468,9 @@ def main():
     # Cell 1: Environment & Path Setup
     cells.append(nb_md("## 1. Setup & Environment Verification"))
     cell1_code = """%matplotlib inline
+import warnings
+warnings.filterwarnings("ignore", message=".*FigureCanvasAgg is non-interactive.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 import os, sys, json, math, pickle
 from pathlib import Path
 import numpy as np
@@ -569,7 +572,8 @@ axes[1].set_title("xBD Building Damage Severity Breakdown")
 axes[1].set_ylabel("Building Count")
 axes[1].grid(True, alpha=0.3)
 plt.tight_layout()
-plt.show()"""
+display(fig)
+plt.close(fig)"""
     cells.append(nb_code(cell3_code, "=== 1. River Gauge Telemetry Summary ===\ngauge_height_m: Mean=3.85m, Max=8.92m\n=== 2. Weather Precipitation Summary ===\nprecipitation_mm: Mean=4.2mm, Max=98.5mm\n=== 3. Structural Building Damage Distribution ===\nno-damage: 920\nminor-damage: 480\nmajor-damage: 230\ndestroyed: 120\n=== 4. SAR Backscatter Statistics ===\nSAR VV Backscatter: Mean=-15.42 dB\nSAR VH Backscatter: Mean=-22.18 dB\nOptical NDWI Index: Mean=0.18"))
 
     # Cell 4: Multimodal Gathering into ONE File
